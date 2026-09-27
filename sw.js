@@ -1,5 +1,5 @@
-const VERSION = '1.0.5-d0406fd17e';
-const AUDIO_V = '8392960f37';
+const VERSION = '1.0.6-647f250011';
+const AUDIO_V = '98fd15a44c';
 const SHELL = 'nv-shell-' + VERSION;
 const DATA = 'nv-data';
 const FONTS = 'nv-fonts';
