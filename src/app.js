@@ -527,6 +527,7 @@ function dayCounts(d) {
   return { n: ws.length, m, l };
 }
 function stepLabel(x) {
+  if (x.kind === 'test') return `쓰기 테스트 · 오늘 단어 ${x.n}개`;
   if (x.kind === 'new') return `새 단어 ${x.nNew}개${x.nRev ? ` + 복습 ${x.nRev}개` : ''}`;
   return x.total > x.left ? `복습 ${x.total - x.left}/${x.total}문제` : `복습 ${x.total}문제`;
 }
@@ -552,12 +553,12 @@ function renderHome() {
   } else if (!ps.finished) {
     const rv = ps.steps.find(x => x.kind === 'rev'), nNew = ps.steps.filter(x => x.kind === 'new').length * L.LESSON_NEW;
     const todayWhat = [nNew ? `새 단어 ${Math.min(nNew, (s.nt && s.nt.ids.length) || nNew)}개` : '', rv ? `복습 ${rv.total}문제` : ''].filter(Boolean).join(' + ');
-    say = (doneN ? `좋아요! ${doneN}/${total} 했어요.` : streak ? `${streak}일 연속 학습 중! 오늘은 ${todayWhat}예요.` : `오늘은 ${todayWhat}예요. 하나씩 해 봐요!`) + `<small>다음: ${nx.kind === 'rev' ? `복습 ${nx.nRev}문제씩 (남은 ${nx.left}문제)` : stepLabel(nx)}</small>`;
-    cta = `<button class="btn" type="button" data-act="planNext">${I.play}${nx.kind === 'rev' ? (nx.total > nx.left ? '복습 이어서' : '복습 시작') + ` · ${nx.nRev}문제` : `${ps.next + 1}단계 시작`}</button>`;
+    say = (doneN ? `좋아요! ${doneN}/${total} 했어요.` : streak ? `${streak}일 연속 학습 중! 오늘은 ${todayWhat}예요.` : `오늘은 ${todayWhat}예요. 하나씩 해 봐요!`) + `<small>다음: ${nx.kind === 'rev' ? `복습 ${nx.nRev}문제씩 (남은 ${nx.left}문제)` : nx.kind === 'test' ? `마무리 쓰기 테스트 (오늘 단어 ${nx.n}개)` : stepLabel(nx)}</small>`;
+    cta = `<button class="btn" type="button" data-act="planNext">${I.play}${nx.kind === 'rev' ? (nx.total > nx.left ? '복습 이어서' : '복습 시작') + ` · ${nx.nRev}문제` : nx.kind === 'test' ? `쓰기 테스트 시작 · ${nx.n}문제` : `${ps.next + 1}단계 시작`}</button>`;
   } else {
     say = `오늘 학습 끝! 정말 잘했어요.<small>${tomorrow ? `내일은 복습 ${tomorrow}개부터 시작해요.` : '내일 또 만나요.'}</small>`; mood = 'happy';
   }
-  const steps = ps.steps.map((x, i) => `<li class="${x.done ? 'done' : i === ps.next ? 'next' : ''}"><i>${x.done ? I.check : i + 1}</i><span>${x.done ? (x.kind === 'new' ? '새 단어 레슨' : '복습 레슨') : stepLabel(x)}</span></li>`).join('');
+  const steps = ps.steps.map((x, i) => `<li class="${x.done ? 'done' : i === ps.next ? 'next' : ''}"><i>${x.done ? I.check : i + 1}</i><span>${x.done ? (x.kind === 'new' ? '새 단어 레슨' : x.kind === 'test' ? '쓰기 테스트' : '복습 레슨') : stepLabel(x)}</span></li>`).join('');
   const more = ps.finished && !lesson ? `<details class="more"><summary>더 공부하기</summary><div class="more-in">
       <button class="btn alt" type="button" data-act="lessonExtra">새 단어 ${L.LESSON_NEW}개 더</button>
       <button class="btn alt" type="button" data-act="tab" data-tab="words">오답노트 · 즐겨찾기 · 듣기 모드</button></div></details>` : '';
@@ -606,6 +607,11 @@ function startLesson(opts = {}) {
   }
   Sound.unlock(); Sound.sfx('start');
   run(s);
+}
+function startDailyTest() {   // today's new words, typed from their Korean meaning with the first letter shown
+  const ids = L.shuffle(((state.nt && state.nt.ids) || []).filter(id => state.prog[id] && W.byId.has(id) && !W.byId.get(id).pat)).slice(0, L.DAILY_TEST);
+  if (!ids.length) { toast('오늘 배운 단어가 아직 없어요'); return; }
+  startTest({ range: { t: 'ids', ids }, qt: 'spell1', label: '오늘의 쓰기 테스트', daily: true });
 }
 function startTest(spec) {
   const X = L.buildTest(state, W, Object.assign({ hasAudio: Voice.available() }, spec), today());
@@ -672,7 +678,7 @@ function renderStep() {
   const q = st.q, say = state.settings.say;
   if (st.k === 'learn') {
     body.innerHTML = `${tagHTML(st)}<div class="lcard"><div class="idx"><span class="hole"></span><span>DAY ${pad2(e.d)}</span><span>·</span><span>No. ${e.n}</span></div>
-      <div class="lword"><span class="w" lang="en">${esc(e.w)}</span>${e.pk ? `<span class="pos">${esc(e.pk)}</span>` : ''}<button class="say" type="button" data-act="say" data-id="${e.id}" aria-label="발음 듣기">${I.speaker}</button></div>
+      <div class="lword"><div class="wcol"><span class="w" lang="en">${esc(e.w)}</span>${e.ipa ? `<span class="ipa">${esc(e.ipa)}</span>` : ''}</div>${e.pk ? `<span class="pos">${esc(e.pk)}</span>` : ''}<button class="say" type="button" data-act="say" data-id="${e.id}" aria-label="발음 듣기">${I.speaker}</button></div>
       ${cardHTML(e)}${extrasHTML(e)}</div>`;
     foot.innerHTML = `<button class="btn" type="button" data-act="next">알겠어요</button>`;
     if (say) sayWordThenKo(e, () => curStep() === st);
@@ -870,7 +876,7 @@ function renderLessonResult(s, r) {
       <div class="rs blue"><small>시간</small><b>${mmss(s.stat.ms)}</b></div>
     </div>
     <div class="streakbig">${streak ? I.flame : I.flameOff}<span><b>${streak ? streak + '일 연속 학습!' : '오늘도 해냈어요'}</b><small>오늘 ${fmt(ds.xp)} XP</small></span></div>
-    ${!ps.finished ? `<button class="btn" type="button" data-act="planNext">${I.play}${nx.kind === 'rev' ? `복습 계속 · ${nx.nRev}문제` : `다음 · ${stepLabel(nx)}`}</button>
+    ${!ps.finished ? `<button class="btn" type="button" data-act="planNext">${I.play}${nx.kind === 'rev' ? `복습 계속 · ${nx.nRev}문제` : nx.kind === 'test' ? `쓰기 테스트 · ${nx.n}문제` : `다음 · ${stepLabel(nx)}`}</button>
     <button class="btn alt" type="button" data-act="tab" data-tab="home">오늘은 여기까지</button>` : `<button class="btn" type="button" data-act="tab" data-tab="home">홈으로</button>`}
     ${failed.length ? `<div class="sec" style="width:100%"><h2>틀린 단어</h2><span>${failed.length}개 · 내일 다시 나와요</span></div><ul class="panel wlist">${failed.map(id => rowHTML(W.byId.get(id))).join('')}</ul>
     <button class="btn alt" type="button" data-act="browseIds" data-ids="${failed.join(',')}" data-label="틀린 단어">틀린 단어 카드로 보기</button>` : ''}
@@ -892,7 +898,7 @@ function renderTestResult(X, r) {
     </div>
     ${r.wrongIds.length ? `<div class="sec" style="width:100%"><h2>틀린 단어</h2><span>${r.wrongIds.length}개 · 오답노트에 담았어요${r.wrongIds.filter(id => state.prog[id]).length ? ' · 배운 단어는 내일 복습' : ''}</span></div><ul class="panel wlist">${r.wrongIds.map(id => rowHTML(W.byId.get(id))).join('')}</ul>
       <button class="btn" type="button" data-act="retryWrong" data-ids="${r.wrongIds.join(',')}">${I.retry}틀린 문제 다시 풀기</button>` : ''}
-    <button class="btn ${r.wrongIds.length ? 'alt' : ''}" type="button" data-act="tab" data-tab="test">테스트 목록으로</button>
+    ${X.spec.daily ? `<button class="btn ${r.wrongIds.length ? 'alt' : ''}" type="button" data-act="tab" data-tab="home">홈으로</button>` : `<button class="btn ${r.wrongIds.length ? 'alt' : ''}" type="button" data-act="tab" data-tab="test">테스트 목록으로</button>`}
   </div>`;
   countUp($('rxp'), X.stat.xp);
 }
@@ -907,7 +913,7 @@ function faceFront(e) {
 }
 function faceBack(e) {
   return `<div class="idx"><span class="hole"></span><span>DAY ${pad2(e.d)}</span><span>·</span><span>No. ${e.n}</span></div><button class="say" type="button" data-act="say" data-id="${e.id}" aria-label="발음 듣기">${I.speaker}</button>
-    <div class="lword" style="padding-right:48px"><span class="w" lang="en">${esc(e.w)}</span></div>${cardHTML(e)}${extrasHTML(e)}`;
+    <div class="lword" style="padding-right:48px"><div class="wcol"><span class="w" lang="en">${esc(e.w)}</span>${e.ipa ? `<span class="ipa">${esc(e.ipa)}</span>` : ''}</div></div>${cardHTML(e)}${extrasHTML(e)}`;
 }
 function stageHTML(e, n) {
   return `<div class="stage" id="stage">${n > 1 ? '<div class="deck d2"></div>' : ''}${n > 0 ? '<div class="deck d1"></div>' : ''}
@@ -1384,7 +1390,7 @@ const ACT = {
   lessonExtra: () => startLesson({ extra: L.LESSON_NEW }),
   lessonMore: () => startLesson({ more: true }),
   lessonRev: () => startLesson({ more: true, kind: 'rev' }),
-  planNext: () => startLesson({ more: true }),
+  planNext: () => { const ps = L.planStatus(state, W, today()), x = ps.steps[ps.next]; if (x && x.kind === 'test') startDailyTest(); else startLesson({ more: true }); },
   next: () => nextLearn(),
   pick: el => pick(Number(el.dataset.i)),
   mpick: el => mpick(el),

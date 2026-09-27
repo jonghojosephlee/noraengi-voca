@@ -197,6 +197,14 @@ function runPlanDay(state, T, pCorrect) {
     const ps = L.planStatus(state, W, T);
     if (ps.finished) return ps;
     const x = ps.steps[ps.next];
+    if (x.kind === 'test') {   // today's spelling test on the words learned today
+      const ids = state.nt.ids.filter(id => state.prog[id] && !W.byId.get(id).pat).slice(0, L.DAILY_TEST);
+      const X = L.buildTest(state, W, { range: { t: 'ids', ids }, qt: 'spell1', daily: true }, T);
+      assert.ok(X.steps.length === x.n && X.steps.every(s => L.makeQuestion(W, s.id, s.qt, true).t === 'spell'), 'daily test is typed');
+      while (X.i < X.steps.length) L.answerTest(state, X, Math.random() < pCorrect);
+      L.finishTest(state, X);
+      continue;
+    }
     const { lesson } = runLesson(state, T, pCorrect, { kind: x.kind });
     assert.ok(lesson.newIds.length === x.nNew, 'lesson matches its step');
     assert.ok(++guard <= 60, 'the plan finishes');
@@ -204,7 +212,7 @@ function runPlanDay(state, T, pCorrect) {
 }
 const s6 = L.newState();
 const p0 = L.planStatus(s6, W, T0);
-assert.deepStrictEqual(p0.steps.map(x => x.kind + x.nNew + '/' + x.nRev), ['new5/0', 'new5/0'], 'first day: two new-word lessons');
+assert.deepStrictEqual(p0.steps.map(x => x.kind + x.nNew + '/' + x.nRev), ['new5/0', 'new5/0', 'test0/0'], 'first day: two new-word lessons, then the spelling test');
 runPlanDay(s6, T0, 1);
 assert.ok(L.planStatus(s6, W, T0).finished);
 let notes = [], maxDue = 0;
@@ -220,7 +228,7 @@ console.log('plan (10 new a day, all reviews, 80% right):', notes.join(' | '), '
 const s7 = L.newState(); let k7 = 0;
 for (const e of W.words) { if (k7 >= 55) break; s7.prog[e.id] = [4, T0, 3, 0, T0 - 16]; k7++; }
 const p7 = L.planStatus(s7, W, T0);
-assert.deepStrictEqual(p7.steps.map(x => x.kind), ['new', 'new', 'rev']);
+assert.deepStrictEqual(p7.steps.map(x => x.kind), ['new', 'new', 'rev', 'test']);
 assert.ok(p7.steps[2].total === 45 && p7.steps[2].left === 45, 'the review step leaves out the 10 reviews the new-word lessons take');
 // soft drop: a box-4 word missed and then right on the retry comes back in 3 days (box 2), not tomorrow
 const les7 = L.buildLesson(s7, W, T0, { kind: 'rev' });

@@ -18,10 +18,12 @@ for p in sorted(glob.glob(os.path.join(F, 'data', 'day*.json'))):
     d = int(os.path.basename(p)[3:5])
     cp = os.path.join(F, 'content', f'day{d:02d}.json')
     content = {r['n']: r for r in json.load(open(cp))} if os.path.exists(cp) else {}
+    ip = os.path.join(F, 'ipa', f'day{d:02d}.json')
+    ipa = {int(k): v for k, v in json.load(open(ip)).items()} if os.path.exists(ip) else {}
     for e in json.load(open(p)):
         c = content.get(e['n'], {})
         sense = [e.get('syn', ''), e['ko']] + ([c['ex'].strip(), (c.get('exKo') or '').strip()] if c.get('ex') else [])
-        extra = {k: v for k, v in {'pos': c.get('pos'), 'say': c.get('say'), 'hit': c.get('hit'), 'ch': c.get('chunks'), 'tip': c.get('tip'), 'pat': bool(e.get('pattern'))}.items() if v}
+        extra = {k: v for k, v in {'pos': c.get('pos'), 'say': c.get('say'), 'hit': c.get('hit'), 'ch': c.get('chunks'), 'tip': c.get('tip'), 'pat': bool(e.get('pattern')), 'ipa': ipa.get(e['n'])}.items() if v}
         rows.append([d, e['n'], e['word'], [sense], '', e.get('fix', ''), extra])   # fix: a note for a corrected source typo
 days = sorted({r[0] for r in rows})
 os.makedirs(DIST, exist_ok=True)

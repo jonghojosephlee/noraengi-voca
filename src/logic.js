@@ -7,7 +7,7 @@ const Logic = (() => {
   const MAXBOX = INTERVAL.length - 1;
   const MASTER = 5;                                 // box at which a word counts as mastered
   const DAYMS = 864e5, SHIFT = 4 * 36e5;            // a study day rolls over at 4am local time
-  const LESSON_NEW = 5, LESSON_REV = 5, REVIEW_LESSON = 10;   // a lesson: 5 new words + up to 5 reviews, or 10 reviews
+  const LESSON_NEW = 5, LESSON_REV = 5, REVIEW_LESSON = 10, DAILY_TEST = 10;   // a lesson: 5 new words + up to 5 reviews, or 10 reviews
   const MIX_TYPES = ['mcq-ko', 'mcq-en', 'syn', 'listen', 'spell', 'cloze', 'ctx', 'dict'];
   const AUDIO_TYPES = ['listen', 'dict'];
 
@@ -56,7 +56,7 @@ const Logic = (() => {
       const senses = r[3].map(s => ({ en: s[0] || '', ko: s[1] || '', ex: s[2] || '', exKo: s[3] || '' }));
       const e = { id: r[0] + '-' + r[1], d: r[0], n: r[1], w: r[2], senses, note: r[4] || '', fix: r[5] || '', i };
       const x = r[6] || {};   // beginner card: part of speech, words to speak, words the example uses, chunks, tip, grammar pattern
-      e.pk = x.pos || ''; e.say = x.say || ''; e.hit = x.hit || ''; e.ch = Array.isArray(x.ch) ? x.ch : null; e.tip = x.tip || ''; e.pat = !!x.pat;
+      e.pk = x.pos || ''; e.say = x.say || ''; e.hit = x.hit || ''; e.ch = Array.isArray(x.ch) ? x.ch : null; e.tip = x.tip || ''; e.pat = !!x.pat; e.ipa = x.ipa || '';
       e.key = e.w.toLowerCase();
       e.pos = posOf(senses[0].ko || '');
       e.stems = stems(senses.map(s => s.ko).join(','));
@@ -301,6 +301,9 @@ const Logic = (() => {
     const left = revLeft - Math.min(revLeft, pendingNew * LESSON_REV);
     const total = Math.max(left, P.rev0 - newTotal * LESSON_REV);
     if (total > 0) steps.push({ kind: 'rev', done: revLeft === 0, nNew: 0, nRev: Math.min(REVIEW_LESSON, left || revLeft), left, total });
+    // the day closes with a short spelling test on today's new words (grammar patterns are not typed)
+    const typed = ids.filter(id => W.byId.has(id) && !W.byId.get(id).pat), dd = state.days[dayKey(T)];
+    if (typed.length >= 3) steps.push({ kind: 'test', done: !!(dd && dd.dtest), nNew: 0, nRev: 0, n: Math.min(DAILY_TEST, typed.length) });
     const next = steps.findIndex(x => !x.done);
     return { steps, next, finished: next < 0, left: { rev: revLeft, fresh: freshLeft } };
   }
@@ -461,6 +464,7 @@ const Logic = (() => {
   }
   function finishTest(state, X) {
     const bonus = X.stat.n ? 5 : 0, ds = dayStats(state, X.T);
+    if (X.spec && X.spec.daily) ds.dtest = true;   // today's spelling test is done
     X.stat.xp += bonus; addXp(state, ds, bonus);
     ds.tests = (ds.tests || 0) + 1;
     const wrongIds = X.answers.filter(a => !a[1]).map(a => a[0]);
@@ -472,7 +476,7 @@ const Logic = (() => {
   function clearWrong(state, id) { delete state.wrong[id]; }
 
   return {
-    INTERVAL, MAXBOX, MASTER, MIX_TYPES, LESSON_NEW, LESSON_REV, REVIEW_LESSON, dayNum, dayKey, seed, shuffle, pick,
+    INTERVAL, MAXBOX, MASTER, MIX_TYPES, LESSON_NEW, LESSON_REV, REVIEW_LESSON, DAILY_TEST, dayNum, dayKey, seed, shuffle, pick,
     stems, posOf, synonymsOf, prepare, related, makeQuestion, splitEx, checkSpell, normSpell,
     defaultSettings, newState, sanitize, fromV1, dayStats, dayMet, addXp, streak, touchBest,
     pickNew, ensurePlan, refreshPlan, todayPlan, dayPlan, planStatus, statusOf,
