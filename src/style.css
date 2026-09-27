@@ -63,8 +63,9 @@ svg{display:block}
 .ibtn svg{width:26px;height:26px}
 .card,.panel{background:var(--surface);border:2px solid var(--line);border-radius:var(--r);box-shadow:0 4px 0 var(--line)}
 .sec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px}
-.sec h2{font-size:19px;font-weight:900}
+.sec h2{font-size:19px;font-weight:900;white-space:nowrap}
 .sec span,.sec button{font-size:14px;color:var(--ink-2);font-weight:700}
+.sec span{text-align:right}
 .eyebrow{font-size:13px;font-weight:800;color:var(--ink-3);letter-spacing:.02em}
 
 /* chunky buttons */

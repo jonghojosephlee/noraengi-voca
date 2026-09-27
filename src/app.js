@@ -608,10 +608,10 @@ function startLesson(opts = {}) {
   Sound.unlock(); Sound.sfx('start');
   run(s);
 }
-function startDailyTest() {   // today's new words, typed from their Korean meaning with the first letter shown
-  const ids = L.shuffle(((state.nt && state.nt.ids) || []).filter(id => state.prog[id] && W.byId.has(id) && !W.byId.get(id).pat)).slice(0, L.DAILY_TEST);
+function startDailyTest() {   // today's new words in three writing formats (see L.buildTest 'write')
+  const ids = L.shuffle(((state.nt && state.nt.ids) || []).filter(id => state.prog[id] && W.byId.has(id))).slice(0, L.DAILY_TEST);
   if (!ids.length) { toast('오늘 배운 단어가 아직 없어요'); return; }
-  startTest({ range: { t: 'ids', ids }, qt: 'spell1', label: '오늘의 쓰기 테스트', daily: true });
+  startTest({ range: { t: 'ids', ids }, qt: 'write', label: '오늘의 쓰기 테스트', daily: true });
 }
 function startTest(spec) {
   const X = L.buildTest(state, W, Object.assign({ hasAudio: Voice.available() }, spec), today());
@@ -655,7 +655,7 @@ const INTRO = {
   'mcq-ko': '영어 단어를 보고 알맞은 뜻을 골라요', 'mcq-en': '한글 뜻을 보고 알맞은 영어 단어를 골라요', syn: '뜻이 가장 가까운 영어 단어(동의어)를 골라요',
   listen: '발음을 듣고 뜻을 골라요. 스피커를 누르면 다시 들려요', spell: "한글 뜻을 보고 영어 단어를 직접 써요. 막히면 '힌트'를 눌러요",
   dict: "발음을 듣고 들리는 단어를 써요. 막히면 '힌트'를 눌러요", cloze: '예문의 빈칸에 들어갈 단어를 골라요', clozet: '예문의 빈칸에 들어갈 단어를 직접 써요. 아래 해석이 힌트예요',
-  ctx: '토플 문제처럼, 문장 속 표시된 단어와 뜻이 가장 가까운 것을 골라요', match: '왼쪽 단어와 오른쪽 뜻을 하나씩 눌러 짝을 맞춰요', card: '카드를 뒤집어 보고, 알았는지 스스로 골라요',
+  ctx: '토플 문제처럼, 문장 속 표시된 단어와 뜻이 가장 가까운 것을 골라요', kotype: '영어 단어를 보고 뜻을 한글로 써요. 비슷하게 써도 돼요', match: '왼쪽 단어와 오른쪽 뜻을 하나씩 눌러 짝을 맞춰요', card: '카드를 뒤집어 보고, 알았는지 스스로 골라요',
 };
 function introHTML(t) {   // shown once per format
   if (!INTRO[t] || state.seenTypes[t]) return '';
@@ -703,6 +703,13 @@ function renderStep() {
   } else if (q.t === 'ctx') {
     body.innerHTML = `${tagHTML(st)}<p class="qprompt">문장 속 이 단어와 뜻이 가장 가까운 것은?</p>${charBubble(sentHTML(q.parts, 'mark'))}${optsHTML(true)}`;
     if (say) Voice.play(e.id);
+  } else if (q.t === 'kotype') {
+    body.innerHTML = `${tagHTML(st)}<p class="qprompt">이 단어의 뜻을 한글로 쓰세요</p>${wordHead(e)}
+      <div class="spell"><input id="koIn" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="비슷하게 써도 돼요" aria-label="뜻 입력"></div>`;
+    foot.innerHTML = `<button class="btn" type="button" data-act="koGo">확인</button>`;
+    if (say) Voice.play(e.id);
+    setTimeout(() => { const i = $('koIn'); if (i) i.focus(); }, 60);
+    return;
   } else if (q.t === 'spell' || q.t === 'clozet' || q.t === 'dict') {
     typeUI(st, e, q);
     return;
@@ -781,6 +788,23 @@ function spellGo() {
   inp.blur();
   resolve(ok, st);
 }
+function koGo() {   // a listed meaning passes at once; anything else is shown next to the meanings for the learner to judge
+  if (!Q || Q.locked) return;
+  const inp = $('koIn'); if (!inp) return;
+  if (!inp.value.trim()) { inp.focus(); return; }
+  const st = curStep(), e = W.byId.get(st.id);
+  Q.locked = true; inp.readOnly = true; inp.blur();
+  if (L.checkKo(e, inp.value)) { inp.classList.add('right'); resolve(true, st); return; }
+  $('fbIn').innerHTML = `<div class="hd"><span>이렇게 써도 맞을까요?</span></div><div class="ans"><div>정답: <b>${esc((e.senses[0] && e.senses[0].ko) || '')}</b></div><div>내가 쓴 답: ${esc(inp.value.trim())}</div></div>
+    <div class="row"><button class="btn alt" type="button" data-act="koSelf" data-v="0" style="flex:1">틀렸어요</button><button class="btn" type="button" data-act="koSelf" data-v="1" style="flex:1">맞았어요</button></div>`;
+  const fb = $('fb'); fb.classList.remove('bad'); fb.classList.add('show');
+}
+function koSelf(ok) {
+  const st = curStep(), inp = $('koIn');
+  hideFb();
+  if (inp) inp.classList.add(ok ? 'right' : 'wrong');
+  resolve(ok, st);
+}
 function hint() {   // first a free clue (synonyms, or the meaning when listening), then one more letter each time
   const st = curStep(), q = st.q, e = W.byId.get(st.id), h = $('spellHint'), slots = $('slots');
   const sense = e.senses[q.si] || e.senses[0];
@@ -808,8 +832,8 @@ function showFb(ok, st, res) {
   const head = `<div class="hd"><i>${ok ? I.check : I.x}</i><span>${ok ? PRAISE[Math.floor(Math.random() * PRAISE.length)] : Q.hinted ? '맞았지만 힌트를 썼어요' : '아쉬워요'}${combo}</span>${res.xp ? `<span class="xp">${I.bolt}+${res.xp} XP</span>` : ''}</div>`;
   let ans = '';
   const typed = q.t === 'spell' || q.t === 'clozet' || q.t === 'dict', inSent = q.t === 'cloze' || q.t === 'clozet' || q.t === 'ctx';
-  if (!ok || typed || inSent || q.t === 'listen') {
-    const right = q.t === 'mcq-ko' || q.t === 'listen' ? e.senses[q.si].ko : q.t === 'syn' || q.t === 'ctx' ? q.opts[q.a] : e.w;
+  if (!ok || typed || inSent || q.t === 'listen' || q.t === 'kotype') {
+    const right = q.t === 'mcq-ko' || q.t === 'listen' || q.t === 'kotype' ? e.senses[q.si].ko : q.t === 'syn' || q.t === 'ctx' ? q.opts[q.a] : e.w;
     const si = q.si != null ? q.si : 0, sense = e.senses[si] || {};
     const ex = sense.ex && (inSent || !ok) ? `<div class="ex"><div class="exrow"><p lang="en">${exMarked(e, si)}</p><button class="say sm" type="button" data-act="sayEx" data-id="${e.id}" aria-label="예문 듣기">${I.speaker}</button></div>${sense.exKo ? `<small>${esc(sense.exKo)}</small>` : ''}${!ok ? howtoHTML(e) : ''}</div>` : '';
     ans = `<div class="ans">${!ok && !typed && q.t !== 'card' ? `<div>정답: <b>${esc(right)}</b></div>` : ''}<div><span class="w" lang="en">${esc(e.w)}</span> <span class="m">${esc(meaningLine(e))}</span></div>${ex}</div>`;
@@ -820,7 +844,7 @@ function showFb(ok, st, res) {
   fb.classList.add('show');
   $('qfoot').innerHTML = '';
   if ((!ok || typed || q.t === 'listen' || q.t === 'mcq-en' || q.t === 'cloze') && state.settings.say) { if (!ok) sayWordThenKo(e, () => $('fb').classList.contains('show')); else Voice.play(e.id); }
-  if (ok) Q.autoT = setTimeout(cont, inSent ? 2400 : typed || q.t === 'listen' || q.t === 'mcq-en' ? 1500 : 1000);
+  if (ok) Q.autoT = setTimeout(cont, inSent ? 2400 : typed || q.t === 'listen' || q.t === 'mcq-en' || q.t === 'kotype' ? 1500 : 1000);
 }
 function hideFb() { const fb = $('fb'); if (fb) fb.classList.remove('show', 'bad'); }
 function cont() { if (!Q) return; clearTimeout(Q.autoT); Sound.sfx('next'); renderStep(); }
@@ -1151,7 +1175,7 @@ function tbIds() {
   const r = TB.range === 'days' ? { t: 'days', days: TB.days } : { t: TB.range };
   return L.rangeIds(state, W, r, today());
 }
-const QT = [['mix', '섞어서'], ['mcq-ko', '뜻 고르기'], ['mcq-en', '단어 고르기'], ['syn', '동의어'], ['cloze', '예문 빈칸'], ['ctx', '문장 속 뜻'], ['listen', '듣기'], ['spell', '한글 보고 쓰기'], ['dict', '받아쓰기']];
+const QT = [['mix', '섞어서'], ['mcq-ko', '뜻 고르기'], ['mcq-en', '단어 고르기'], ['syn', '동의어'], ['cloze', '예문 빈칸'], ['ctx', '문장 속 뜻'], ['listen', '듣기'], ['spell', '한글 보고 쓰기'], ['dict', '받아쓰기'], ['kotype', '뜻 쓰기'], ['write', '쓰기 섞어서']];
 function renderTest() {
   if (!Q) settleSessions();
   TB = TB || tbDefaults();
@@ -1398,6 +1422,8 @@ const ACT = {
   quit: () => quitRun(),
   hint: () => hint(),
   spellGo: () => spellGo(),
+  koGo: () => koGo(),
+  koSelf: el => koSelf(el.dataset.v === '1'),
   cardKnow: () => cardAnswer(true),
   cardDont: () => cardAnswer(false),
   sheet: el => closeSheet(el.dataset.v),
@@ -1475,7 +1501,10 @@ document.addEventListener('keydown', ev => {
   if (screen === 'quiz' && Q) {
     if (ev.repeat && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); return; }
     const st = curStep(), fbOpen = $('fb').classList.contains('show');
-    if (inField) { if (ev.key === 'Enter' && ev.target.id === 'spellIn') { ev.preventDefault(); fbOpen ? cont() : spellGo(); } return; }
+    if (inField) {
+      if (ev.key === 'Enter' && !ev.isComposing && (ev.target.id === 'spellIn' || ev.target.id === 'koIn')) { ev.preventDefault(); if (fbOpen) { if (!document.querySelector('#fbIn [data-act="koSelf"]')) cont(); } else if (ev.target.id === 'koIn') koGo(); else spellGo(); }
+      return;
+    }
     if (fbOpen) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); cont(); } return; }
     if (!st) return;
     if (st.k === 'learn') { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); nextLearn(); } }

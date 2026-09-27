@@ -1,4 +1,4 @@
-const VERSION = '1.0.4-7a5ae61aee';
+const VERSION = '1.0.5-d0406fd17e';
 const AUDIO_V = '8392960f37';
 const SHELL = 'nv-shell-' + VERSION;
 const DATA = 'nv-data';

@@ -88,6 +88,15 @@ assert.ok(L.checkSpell(phrase, phrase.w.toUpperCase()) && L.checkSpell(phrase, '
 const pat = W.words.find(e => e.pat);
 if (pat) for (const t of ['spell', 'spell1', 'dict', 'clozet', 'cloze']) assert.ok(!['spell', 'dict', 'clozet', 'cloze'].includes(L.makeQuestion(W, pat.id, t, true).t), 'pattern not typed: ' + pat.w);
 
+// 2b) writing the Korean meaning: every listed meaning passes as typed, near misses go to the learner's own judgement
+let koItems = 0;
+for (const e of W.words) for (const s of e.senses) for (const it of s.ko.split(/[,;·/]/)) if (it.trim()) { koItems++; assert.ok(L.checkKo(e, it.trim()), 'own meaning accepted: ' + e.w + ' ' + it); }
+const ko = (k, x) => L.checkKo({ senses: [{ ko: k }] }, x);
+assert.ok(ko('정리하다, 청소하다', '정리') && ko('정리하다, 청소하다', '청소하다, 정리하다') && !ko('정리하다, 청소하다', '정리, 요리') && !ko('정리하다', ' '));
+assert.ok(ko('~에 참가하다', '참가하다') && ko('~에 참가하다', '~에 참가하다') && ko('(~에게 ) ~을 알리다', '알리다') && ko('A 를 B 로 바꾸다', '바꾸다'));
+assert.ok(ko('이야기', '이야기') && !ko('이야기', '야기') && ko('은하, 별', '은하') && !ko('~에게 힘을 주다', '주다') && !ko('닫다', '열다'));
+console.log('meanings checked', koItems);
+
 // 3) lesson simulation: short lessons of 5 new words (+ up to 5 reviews), or 10 reviews
 function runLesson(state, T, pCorrect, opts = {}) {
   const lesson = L.buildLesson(state, W, T, Object.assign({ hasAudio: true }, opts));
@@ -186,6 +195,13 @@ assert.strictEqual(worst.lesson.steps.length, worst.lesson.base + 5);
 assert.strictEqual(worst.lesson.steps[worst.lesson.steps.length - 1].k, 'match');
 for (const id of worst.lesson.newIds) assert.deepStrictEqual(s5.prog[id].slice(0, 2), [1, T0 + 1]);
 
+// today's plan survives a reload: a finished review step stays on the list
+{ const s8 = L.newState(); let k8 = 0;
+  for (const e of W.words) { if (k8 >= 30) break; s8.prog[e.id] = [3, T0, 2, 0, T0 - 7]; k8++; }
+  L.planStatus(s8, W, T0);
+  for (const id of Object.keys(s8.prog)) s8.prog[id][1] = T0 + 7;
+  const kinds = st => L.planStatus(st, W, T0).steps.map(x => x.kind + (x.done ? '+' : '')).join(' ');
+  assert.strictEqual(kinds(L.sanitize(JSON.parse(JSON.stringify(s8)), W)), kinds(s8), 'plan kept across reload'); }
 // a half-done lesson saved by the old version is dropped; a finished one is kept so it can be settled
 assert.strictEqual(L.sanitize({ lesson: { kind: 'lesson', T: T0, steps: [{ k: 'learn', id: '1-1' }, { k: 'q', id: '1-1' }], i: 1 } }, W).lesson, null);
 assert.ok(L.sanitize({ lesson: { kind: 'lesson', T: T0, steps: [{ k: 'learn', id: '1-1' }], i: 1 } }, W).lesson);
@@ -197,10 +213,13 @@ function runPlanDay(state, T, pCorrect) {
     const ps = L.planStatus(state, W, T);
     if (ps.finished) return ps;
     const x = ps.steps[ps.next];
-    if (x.kind === 'test') {   // today's spelling test on the words learned today
-      const ids = state.nt.ids.filter(id => state.prog[id] && !W.byId.get(id).pat).slice(0, L.DAILY_TEST);
-      const X = L.buildTest(state, W, { range: { t: 'ids', ids }, qt: 'spell1', daily: true }, T);
-      assert.ok(X.steps.length === x.n && X.steps.every(s => L.makeQuestion(W, s.id, s.qt, true).t === 'spell'), 'daily test is typed');
+    if (x.kind === 'test') {   // today's writing test on the words learned today, in three blocks
+      const ids = L.shuffle(state.nt.ids.filter(id => state.prog[id])).slice(0, L.DAILY_TEST);
+      const X = L.buildTest(state, W, { range: { t: 'ids', ids }, qt: 'write', hasAudio: true, daily: true }, T);
+      const got = X.steps.map(s => L.makeQuestion(W, s.id, s.qt, true).t), order = ['spell', 'dict', 'kotype'];
+      assert.ok(X.steps.length === x.n && got.every((q, i) => order.includes(q) && (i === 0 || order.indexOf(q) >= order.indexOf(got[i - 1]))), 'daily test: spell, dict, then kotype');
+      assert.ok(X.steps.every((s, i) => !W.byId.get(s.id).pat || got[i] === 'kotype'), 'patterns are asked for their meaning');
+      if (X.steps.length >= 9) assert.strictEqual(new Set(got).size, 3, 'all three formats');
       while (X.i < X.steps.length) L.answerTest(state, X, Math.random() < pCorrect);
       L.finishTest(state, X);
       continue;

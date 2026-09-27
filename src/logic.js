@@ -175,7 +175,7 @@ const Logic = (() => {
     if (e.pat && ['spell', 'spell1', 'dict', 'clozet', 'cloze'].includes(type)) type = 'mcq-en';   // patterns are not typed
     const order = { 'mcq-ko': ['mcq-ko'], listen: ['listen', 'mcq-ko'], 'mcq-en': ['mcq-en', 'mcq-ko'], syn: ['syn', 'mcq-en', 'mcq-ko'],
       spell: ['spell'], spell1: ['spell1'], dict: ['dict'], cloze: ['cloze', 'mcq-en', 'mcq-ko'], clozet: ['clozet', 'spell1'],
-      ctx: ['ctx', 'syn', 'mcq-en', 'mcq-ko'], card: ['card'] }[type] || ['mcq-ko'];
+      ctx: ['ctx', 'syn', 'mcq-en', 'mcq-ko'], kotype: ['kotype', 'mcq-ko'], card: ['card'] }[type] || ['mcq-ko'];
     for (const t of order) {
       let q = null;
       if (t === 'mcq-ko' || t === 'listen') q = qMeaning(W, e, t);
@@ -183,12 +183,35 @@ const Logic = (() => {
       else if (t === 'syn') q = qSynonym(W, e);
       else if (t === 'spell' || t === 'spell1') q = { t: 'spell', id, si: senseIndex(e), lead: t === 'spell1' ? 1 : 0 };   // lead: letters shown up front
       else if (t === 'dict') q = { t: 'dict', id, si: senseIndex(e) };
+      else if (t === 'kotype') q = e.senses[0] && e.senses[0].ko ? { t: 'kotype', id, si: 0 } : null;
       else if (t === 'cloze' || t === 'clozet') q = qCloze(W, e, t === 'clozet');
       else if (t === 'ctx') q = qContext(W, e);
       else if (t === 'card') q = { t: 'card', id };
       if (q) return q;
     }
     return { t: 'card', id };
+  }
+  // writing the Korean meaning: accept any listed meaning, with or without brackets, a 하다-type ending, or the particle
+  // that follows ~ ("~에 지원하다" also passes as "지원하다"); anything else goes to the learner's own judgement
+  const KO_TAIL = /(시키다|하다|되다|이다|하는|되는|적인|적으로|스러운|스럽게|하게|한|된|히|게|다)$/;
+  const koFlat = s => String(s).replace(/[^가-힣a-zA-Z0-9]/g, '');
+  function koVariants(ko) {
+    const out = new Set();
+    const add = v => { if (!v) return; out.add(v); const stem = v.replace(KO_TAIL, ''); if (stem.length >= 2) out.add(stem); };
+    for (const item of String(ko).split(/[,;·/]/)) {
+      for (const v0 of [item.replace(/\([^)]*\)/g, ' '), item]) {
+        const v1 = v0.replace(/\s+/g, ' ').trim();
+        add(koFlat(v1));
+        if (/^~/.test(v1)) add(koFlat(v1.replace(/^~\s*(을|를|에게|에서|에|의|와|과|으로|로|이|가|은|는)?\s*/, '')));
+        if (/\b[AB]\b/.test(v1)) add(koFlat(v1.replace(/\b[AB]\s*(을|를|에게|에서|에|의|와|과|으로|로|이|가|은|는)?\s*/g, '')));   // "A 를 B 로 한정하다" -> 한정하다
+      }
+    }
+    return out;
+  }
+  function checkKo(e, input) {   // several meanings typed together pass only if each one does
+    const vs = koVariants(e.senses.map(s => s.ko).join(','));
+    const parts = String(input).split(/[,;·/]/).map(koFlat).filter(Boolean);
+    return parts.length > 0 && parts.every(a => { const stem = a.replace(KO_TAIL, ''); return vs.has(a) || (stem.length >= 2 && vs.has(stem)); });
   }
   const normSpell = s => String(s).toLowerCase().replace(/[^a-z]/g, '');
   const checkSpell = (e, input) => normSpell(input).length > 0 && normSpell(input) === normSpell(e.w);
@@ -209,7 +232,7 @@ const Logic = (() => {
     }
     out.prog = prog;
     for (const key of ['stars', 'wrong', 'days', 'spots', 'seenTypes']) if (!out[key] || typeof out[key] !== 'object' || Array.isArray(out[key])) out[key] = {};
-    if (out.today && (typeof out.today.d !== 'number' || !Array.isArray(out.today.steps))) out.today = null;
+    if (out.today && (typeof out.today.d !== 'number' || out.today.v !== 2 || typeof out.today.rev0 !== 'number')) out.today = null;   // keep today's plan across reloads
     if (!Array.isArray(out.tests)) out.tests = [];
     // a half-done lesson from before short lessons is dropped; its answers are already in prog
     if (out.lesson && out.lesson.v !== 3 && out.lesson.i < (out.lesson.steps || []).length) out.lesson = null;
@@ -301,9 +324,9 @@ const Logic = (() => {
     const left = revLeft - Math.min(revLeft, pendingNew * LESSON_REV);
     const total = Math.max(left, P.rev0 - newTotal * LESSON_REV);
     if (total > 0) steps.push({ kind: 'rev', done: revLeft === 0, nNew: 0, nRev: Math.min(REVIEW_LESSON, left || revLeft), left, total });
-    // the day closes with a short spelling test on today's new words (grammar patterns are not typed)
-    const typed = ids.filter(id => W.byId.has(id) && !W.byId.get(id).pat), dd = state.days[dayKey(T)];
-    if (typed.length >= 3) steps.push({ kind: 'test', done: !!(dd && dd.dtest), nNew: 0, nRev: 0, n: Math.min(DAILY_TEST, typed.length) });
+    // the day closes with a short writing test on today's new words (grammar patterns are asked for their meaning)
+    const todays = ids.filter(id => W.byId.has(id)), dd = state.days[dayKey(T)];
+    if (todays.length >= 3) steps.push({ kind: 'test', done: !!(dd && dd.dtest), nNew: 0, nRev: 0, n: Math.min(DAILY_TEST, todays.length) });
     const next = steps.findIndex(x => !x.done);
     return { steps, next, finished: next < 0, left: { rev: revLeft, fresh: freshLeft } };
   }
@@ -433,11 +456,22 @@ const Logic = (() => {
     if (range.t === 'ids') return (range.ids || []).filter(id => W.byId.has(id));
     return [];
   }
+  // 'write': a mixed writing test in three blocks, about a third each — meaning -> English (first letter shown),
+  // sound -> English, then English -> Korean meaning last, so the keyboard switches to Korean only once.
+  // Grammar patterns are only asked for their meaning.
+  function writeSteps(W, ids, hasAudio) {
+    const pats = ids.filter(id => W.byId.get(id).pat), rest = ids.filter(id => !W.byId.get(id).pat);
+    const nKo = Math.min(ids.length, Math.max(pats.length, Math.round(ids.length / 3)));
+    const nEn = ids.length - nKo, nSp = hasAudio ? Math.ceil(nEn / 2) : nEn;
+    return rest.map((id, i) => ({ k: 'q', id, qt: i < nSp ? 'spell1' : i < nEn ? 'dict' : 'kotype' }))
+      .concat(pats.map(id => ({ k: 'q', id, qt: 'kotype' })));
+  }
   function buildTest(state, W, spec, T) {
     let ids = rangeIds(state, W, spec.range, T);
     ids = spec.range.t === 'ids' ? ids.slice() : shuffle(ids.slice());
     if (spec.count && spec.count < ids.length) ids = ids.slice(0, spec.count);
-    const steps = ids.map(id => ({ k: 'q', id, qt: spec.qt === 'mix' ? pick(spec.hasAudio ? MIX_TYPES : MIX_TYPES.filter(t => !AUDIO_TYPES.includes(t))) : spec.qt }));
+    const steps = spec.qt === 'write' ? writeSteps(W, ids, spec.hasAudio)
+      : ids.map(id => ({ k: 'q', id, qt: spec.qt === 'mix' ? pick(spec.hasAudio ? MIX_TYPES : MIX_TYPES.filter(t => !AUDIO_TYPES.includes(t))) : spec.qt }));
     return { kind: 'test', T, created: Date.now(), spec, steps, i: 0, answers: [], stat: { ok: 0, n: 0, xp: 0, combo: 0, maxCombo: 0, ms: 0 } };
   }
   function answerTest(state, X, correct) {
@@ -477,7 +511,7 @@ const Logic = (() => {
 
   return {
     INTERVAL, MAXBOX, MASTER, MIX_TYPES, LESSON_NEW, LESSON_REV, REVIEW_LESSON, DAILY_TEST, dayNum, dayKey, seed, shuffle, pick,
-    stems, posOf, synonymsOf, prepare, related, makeQuestion, splitEx, checkSpell, normSpell,
+    stems, posOf, synonymsOf, prepare, related, makeQuestion, splitEx, checkSpell, normSpell, checkKo,
     defaultSettings, newState, sanitize, fromV1, dayStats, dayMet, addXp, streak, touchBest,
     pickNew, ensurePlan, refreshPlan, todayPlan, dayPlan, planStatus, statusOf,
     buildLesson, lessonUnits, answerLesson, answerMatch, finishLesson,
