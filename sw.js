@@ -1,8 +1,10 @@
-const VERSION = '1.0.6-647f250011';
-const AUDIO_V = '98fd15a44c';
-const SHELL = 'nv-shell-' + VERSION;
-const DATA = 'nv-data';
-const FONTS = 'nv-fonts';
+const VERSION = '1.0.7-409d8cb0de';
+const P = 'nv';                // this app's cache names (초록 cv-, 노랭이 nv-: both apps share one origin)
+const AUDIO_KEEP = ["d01.bin?v=5e5baa9768", "d02.bin?v=9c7649ce29", "d03.bin?v=4e1c70ba21", "d04.bin?v=450dcee627", "d05.bin?v=1d409e23cb", "x01.bin?v=96fb35916f", "x02.bin?v=b99e976b1d", "x03.bin?v=c00332a52f", "x04.bin?v=03d6fea2a0", "x05.bin?v=94eb9bd21d"];    // the current audio packs of each Day ("d01.bin?v=<hash>", examples "x01.bin?v=<hash>")
+const OLD = {"prefixes": [], "names": []};                  // caches an older build of this app left behind
+const SHELL = P + '-shell-' + VERSION;
+const DATA = P + '-data';
+const FONTS = P + '-fonts';
 const FILES = ['./', './index.html', './manifest.json', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 
 self.addEventListener('install', event => {
@@ -12,9 +14,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('nv-shell-') && k !== SHELL).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => (k.startsWith(P + '-shell-') && k !== SHELL) || OLD.prefixes.some(x => k.startsWith(x)) || OLD.names.includes(k)).map(k => caches.delete(k))))
       .then(() => caches.open(DATA))
-      .then(c => c.keys().then(reqs => Promise.all(reqs.filter(r => r.url.includes('/data/audio/') && !r.url.endsWith('v=' + AUDIO_V)).map(r => c.delete(r)))))
+      .then(c => c.keys().then(reqs => Promise.all(reqs.filter(r => r.url.includes('/data/audio/') && !AUDIO_KEEP.some(k => r.url.endsWith('/' + k))).map(r => c.delete(r)))))   // only Days whose pack changed are fetched again
       .then(() => self.clients.claim())
   );
 });

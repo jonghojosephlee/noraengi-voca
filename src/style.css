@@ -96,7 +96,7 @@ svg{display:block}
 .mascot .m-stem{stroke:var(--green-deep);stroke-width:5;stroke-linecap:round;fill:none}
 .mascot .m-leaf1{fill:#6fdc8f}
 .mascot .m-leaf2{fill:#43c56f}
-.mascot .m-blob{fill:#ffc83d}
+.mascot .m-blob{fill:var(--pet,var(--green))}
 .mascot .m-belly{fill:#fff;opacity:.22}
 .mascot .m-pupil{fill:var(--face)}
 .mascot .m-line{stroke:var(--face);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
@@ -299,7 +299,7 @@ svg{display:block}
 .card3d.flipped{transform:rotateY(180deg)}
 .face{position:absolute;inset:0;border-radius:22px;background:var(--surface);border:2px solid var(--line);box-shadow:0 5px 0 var(--line);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;gap:10px;padding:18px 20px 20px;overflow:hidden}
 .face.back{transform:rotateY(180deg);overflow-y:auto;overscroll-behavior:contain}
-.face .say{position:absolute;top:14px;right:14px}
+.face > .say{position:absolute;top:14px;right:14px}   /* only a face's own corner button: the small meaning/example buttons stay in their rows */
 .face .fw{font-weight:900;font-size:clamp(34px,10vw,48px);line-height:1.08;text-align:center;margin:auto 0;text-wrap:balance;overflow-wrap:anywhere;padding-inline:6px}
 .face .fw.long{font-size:clamp(26px,7.6vw,36px)}
 .face .fk{margin:auto 0;display:flex;flex-direction:column;gap:12px;text-align:center}
@@ -519,7 +519,7 @@ details.more[open] summary::after{content:" ▴"}
 .qnew{align-self:stretch;font-size:14.5px;font-weight:700;line-height:1.45;color:var(--ink);background:var(--blue-soft);border-radius:14px;padding:9px 13px}
 .qnew b{display:block;font-size:12.5px;font-weight:900;color:var(--blue);letter-spacing:.02em;margin-bottom:1px}
 .overall .bar i{background:var(--green)}
-/* beginner cards (노랭이 보카) */
+/* cards: meaning, similar words, example with its sound, 풀이 */
 .lword .pos{align-self:center;font-size:13px;font-weight:900;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:var(--gold-ink);white-space:nowrap}
 .say.sm{width:36px;height:36px;border-radius:11px;box-shadow:0 3px 0 var(--blue-deep)}
 .say.sm svg{width:19px;height:19px}
@@ -552,3 +552,19 @@ details.howto[open] summary::after{content:" ▴"}
 .lword .pos{margin-right:auto}
 .lword .wcol{display:flex;flex-direction:column;gap:3px;min-width:0}
 .lword .ipa{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans',sans-serif;font-size:16px;font-weight:500;color:var(--ink-2);letter-spacing:.01em;overflow-wrap:anywhere}
+.sense{display:flex;flex-direction:column;gap:10px}
+.sense+.sense{border-top:2px solid var(--line);padding-top:12px}
+.kmean .no{width:24px;height:24px;border-radius:8px;background:var(--green-soft);color:var(--green-ink);font-size:13px;font-weight:900;display:grid;place-items:center;flex:none}
+/* the face turned away is not painted once the flip is over (the one turning in shows at once) */
+.card3d .face{transition:visibility 0s}
+.card3d:not(.flipped) .face.back,.card3d.flipped .face.front{visibility:hidden;transition:visibility 0s .46s}
+/* 풀이 chunks are buttons: tap to hear that part */
+.chunks .ck{font:inherit;text-align:left;cursor:pointer;color:inherit;transition:transform .08s,border-color .12s}
+.chunks .ck:active{transform:translateY(2px);border-color:var(--blue)}
+.chunks .ck.playing{border-color:var(--blue);background:var(--blue-soft)}
+.ckhint{font-size:12.5px;font-weight:800;color:var(--ink-3);padding-bottom:6px}
+/* pick every meaning */
+.qcount{display:inline-block;margin-left:6px;font-size:13px;font-weight:900;padding:2px 9px;border-radius:999px;background:var(--blue-soft);color:var(--blue);vertical-align:3px}
+.opts.multi .opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+.opts.multi .opt.sel .k{background:var(--blue);color:#fff}
+.opts.multi .opt.missed{outline:3px dashed var(--green);outline-offset:-3px}

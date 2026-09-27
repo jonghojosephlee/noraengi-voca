@@ -97,6 +97,23 @@ assert.ok(ko('~에 참가하다', '참가하다') && ko('~에 참가하다', '~�
 assert.ok(ko('이야기', '이야기') && !ko('이야기', '야기') && ko('은하, 별', '은하') && !ko('~에게 힘을 주다', '주다') && !ko('닫다', '열다'));
 console.log('meanings checked', koItems);
 
+// 2c) pick every meaning: the word's own meanings (2-4) among 6 options, the others from unrelated words
+let multiN = 0;
+for (const e of W.words) {
+  const q = L.makeQuestion(W, e.id, 'multi', true), own = new Set(L.meaningItems(e));
+  if (!L.multiOK(e)) { assert.notStrictEqual(q.t, 'multi', 'one meaning only: ' + e.w); continue; }
+  if (q.t !== 'multi') continue;
+  multiN++;
+  assert.strictEqual(q.opts.length, 6, 'six options ' + e.w);
+  assert.strictEqual(new Set(q.opts).size, 6, 'unique options ' + e.w);
+  assert.ok(q.ans.length >= 2 && q.ans.length <= 4, 'two to four answers ' + e.w);
+  q.opts.forEach((o, i) => assert.strictEqual(q.ans.includes(i), own.has(o), `answer marks ${e.w}: ${o}`));
+}
+assert.ok(multiN > 50, 'multi questions made ' + multiN);
+{ const W3 = L.prepare([[1, 1, 'test', [['try', '시험', 'We test it.', '우리는 그것을 시험한다.', ['We / test it.', '우리는 / 그것을 시험한다'], '', [[0.1, 0.4], [0.4, 1.0]]]]]]);
+  assert.deepStrictEqual(W3.words[0].senses[0].ct, [[0.1, 0.4], [0.4, 1.0]], 'chunk timing read from the row'); }
+console.log('pick-every-meaning questions', multiN);
+
 // 3) lesson simulation: short lessons of 5 new words (+ up to 5 reviews), or 10 reviews
 function runLesson(state, T, pCorrect, opts = {}) {
   const lesson = L.buildLesson(state, W, T, Object.assign({ hasAudio: true }, opts));

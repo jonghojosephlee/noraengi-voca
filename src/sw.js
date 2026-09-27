@@ -1,8 +1,10 @@
 const VERSION = '__VERSION__';
-const AUDIO_V = '__AUDIO_V__';
-const SHELL = 'nv-shell-' + VERSION;
-const DATA = 'nv-data';
-const FONTS = 'nv-fonts';
+const P = '__CACHE__';                // this app's cache names (초록 cv-, 노랭이 nv-: both apps share one origin)
+const AUDIO_KEEP = __AUDIO_KEEP__;    // the current audio packs of each Day ("d01.bin?v=<hash>", examples "x01.bin?v=<hash>")
+const OLD = __OLD__;                  // caches an older build of this app left behind
+const SHELL = P + '-shell-' + VERSION;
+const DATA = P + '-data';
+const FONTS = P + '-fonts';
 const FILES = ['./', './index.html', './manifest.json', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'];
 
 self.addEventListener('install', event => {
@@ -12,9 +14,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('nv-shell-') && k !== SHELL).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => (k.startsWith(P + '-shell-') && k !== SHELL) || OLD.prefixes.some(x => k.startsWith(x)) || OLD.names.includes(k)).map(k => caches.delete(k))))
       .then(() => caches.open(DATA))
-      .then(c => c.keys().then(reqs => Promise.all(reqs.filter(r => r.url.includes('/data/audio/') && !r.url.endsWith('v=' + AUDIO_V)).map(r => c.delete(r)))))
+      .then(c => c.keys().then(reqs => Promise.all(reqs.filter(r => r.url.includes('/data/audio/') && !AUDIO_KEEP.some(k => r.url.endsWith('/' + k))).map(r => c.delete(r)))))   // only Days whose pack changed are fetched again
       .then(() => self.clients.claim())
   );
 });

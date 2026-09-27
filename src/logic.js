@@ -1,4 +1,4 @@
-/* 노랭이 보카 core logic (forked from 초록 보카): words, spaced repetition, question generation, lessons and tests.
+/* 초록 보카 / 노랭이 보카 core logic (both apps): words, spaced repetition, question generation, lessons and tests.
    No DOM access, so the same file runs in the page and in the node tests. */
 const Logic = (() => {
   'use strict';
@@ -8,7 +8,7 @@ const Logic = (() => {
   const MASTER = 5;                                 // box at which a word counts as mastered
   const DAYMS = 864e5, SHIFT = 4 * 36e5;            // a study day rolls over at 4am local time
   const LESSON_NEW = 5, LESSON_REV = 5, REVIEW_LESSON = 10, DAILY_TEST = 10;   // a lesson: 5 new words + up to 5 reviews, or 10 reviews
-  const MIX_TYPES = ['mcq-ko', 'mcq-en', 'syn', 'listen', 'spell', 'cloze', 'ctx', 'dict'];
+  const MIX_TYPES = ['mcq-ko', 'mcq-en', 'syn', 'listen', 'spell', 'cloze', 'ctx', 'dict', 'multi'];
   const AUDIO_TYPES = ['listen', 'dict'];
 
   const dayNum = (t = Date.now()) => { const d = new Date(t - SHIFT); return Math.floor((d.getTime() - d.getTimezoneOffset() * 6e4) / DAYMS); };
@@ -51,12 +51,22 @@ const Logic = (() => {
     }
     return out;
   }
+  // 풀이 chunks may be stored as word counts over the example ([[2, 2, 3], korean]) -> ["I sent / my resume / ...", korean]
+  function unchunk(ch, ex) {
+    if (!Array.isArray(ch) || !Array.isArray(ch[0])) return Array.isArray(ch) ? ch : null;
+    const ws = String(ex || '').trim().split(/\s+/), out = [];
+    let i = 0;
+    for (const n of ch[0]) { out.push(ws.slice(i, i + n).join(' ')); i += n; }
+    return [out.join(' / '), ch[1]];
+  }
   function prepare(rows) {
     const words = rows.map((r, i) => {
-      const senses = r[3].map(s => ({ en: s[0] || '', ko: s[1] || '', ex: s[2] || '', exKo: s[3] || '' }));
+      // a sense: similar words, meaning, example, its Korean, and the example's 풀이 (chunks [english, korean] and a tip)
+      const senses = r[3].map(s => ({ en: s[0] || '', ko: s[1] || '', ex: s[2] || '', exKo: s[3] || '', ch: unchunk(s[4], s[2]), tip: s[5] || '', ct: Array.isArray(s[6]) ? s[6] : null }));
       const e = { id: r[0] + '-' + r[1], d: r[0], n: r[1], w: r[2], senses, note: r[4] || '', fix: r[5] || '', i };
       const x = r[6] || {};   // beginner card: part of speech, words to speak, words the example uses, chunks, tip, grammar pattern
-      e.pk = x.pos || ''; e.say = x.say || ''; e.hit = x.hit || ''; e.ch = Array.isArray(x.ch) ? x.ch : null; e.tip = x.tip || ''; e.pat = !!x.pat; e.ipa = x.ipa || '';
+      e.pk = x.pos || ''; e.say = x.say || ''; e.hit = x.hit || ''; e.pat = !!x.pat; e.ipa = x.ipa || '';
+      if (senses[0] && !senses[0].ch && !senses[0].tip) { senses[0].ch = unchunk(x.ch, senses[0].ex); senses[0].tip = x.tip || ''; senses[0].ct = Array.isArray(x.ct) ? x.ct : null; }   // 노랭이 cards keep them per word
       e.key = e.w.toLowerCase();
       e.pos = posOf(senses[0].ko || '');
       e.stems = stems(senses.map(s => s.ko).join(','));
@@ -167,6 +177,25 @@ const Logic = (() => {
     }, taken);
     return finish({ t: 'syn', id: e.id }, correct, [correct, ...ds]);
   }
+  // every meaning of a word that has several: one per sense (초록), or the items of its one meaning ("공석, 결원, 개장")
+  function meaningItems(e) {
+    if (e.senses.length > 1) return e.senses.map(s => s.ko).filter(Boolean);
+    return String((e.senses[0] && e.senses[0].ko) || '').split(/[,;]/).map(x => x.trim()).filter(Boolean);
+  }
+  const multiOK = e => new Set(meaningItems(e)).size >= 2;
+  function qMulti(W, e) {   // pick every meaning: up to 4 of the word's own, the rest (to 6 options) from unrelated words
+    const own = shuffle([...new Set(meaningItems(e))]).slice(0, 4);
+    if (own.length < 2) return null;
+    const perSense = e.senses.length > 1;
+    const optionOf = c => {
+      const items = perSense ? c.senses.map(s => s.ko).filter(Boolean) : meaningItems(c);
+      return items.length ? pick(items) : null;
+    };
+    const ds = draw(tiers(W, e, c => !related(c, e)), 6 - own.length, optionOf, new Set(meaningItems(e)));
+    if (ds.length < 6 - own.length) return null;
+    const opts = shuffle([...own, ...ds]);
+    return { t: 'multi', id: e.id, si: 0, opts, ans: own.map(o => opts.indexOf(o)).sort((a, b) => a - b) };
+  }
   function makeQuestion(W, id, type, hasAudio) {
     const e = W.byId.get(id);
     if (!e) return null;
@@ -175,7 +204,7 @@ const Logic = (() => {
     if (e.pat && ['spell', 'spell1', 'dict', 'clozet', 'cloze'].includes(type)) type = 'mcq-en';   // patterns are not typed
     const order = { 'mcq-ko': ['mcq-ko'], listen: ['listen', 'mcq-ko'], 'mcq-en': ['mcq-en', 'mcq-ko'], syn: ['syn', 'mcq-en', 'mcq-ko'],
       spell: ['spell'], spell1: ['spell1'], dict: ['dict'], cloze: ['cloze', 'mcq-en', 'mcq-ko'], clozet: ['clozet', 'spell1'],
-      ctx: ['ctx', 'syn', 'mcq-en', 'mcq-ko'], kotype: ['kotype', 'mcq-ko'], card: ['card'] }[type] || ['mcq-ko'];
+      ctx: ['ctx', 'syn', 'mcq-en', 'mcq-ko'], kotype: ['kotype', 'mcq-ko'], multi: ['multi', 'mcq-ko'], card: ['card'] }[type] || ['mcq-ko'];
     for (const t of order) {
       let q = null;
       if (t === 'mcq-ko' || t === 'listen') q = qMeaning(W, e, t);
@@ -184,6 +213,7 @@ const Logic = (() => {
       else if (t === 'spell' || t === 'spell1') q = { t: 'spell', id, si: senseIndex(e), lead: t === 'spell1' ? 1 : 0 };   // lead: letters shown up front
       else if (t === 'dict') q = { t: 'dict', id, si: senseIndex(e) };
       else if (t === 'kotype') q = e.senses[0] && e.senses[0].ko ? { t: 'kotype', id, si: 0 } : null;
+      else if (t === 'multi') q = qMulti(W, e);
       else if (t === 'cloze' || t === 'clozet') q = qCloze(W, e, t === 'clozet');
       else if (t === 'ctx') q = qContext(W, e);
       else if (t === 'card') q = { t: 'card', id };
@@ -217,8 +247,10 @@ const Logic = (() => {
   const checkSpell = (e, input) => normSpell(input).length > 0 && normSpell(input) === normSpell(e.w);
 
   /* ---------- state ---------- */
+  const DEF_EXTRA = {};
+  function configure(o) { Object.assign(DEF_EXTRA, o || {}); }   // an app's own defaults (노랭이 reads meanings aloud)
   function defaultSettings() {
-    return { daily: 10, goal: 50, start: 1, review: 'quiz', spell: true, sfx: true, say: true, silent: true, koSay: true, repeat: 2, front: 'en', theme: 'system' };
+    return { daily: 10, goal: 50, start: 1, review: 'quiz', spell: true, sfx: true, say: true, silent: true, koSay: false, repeat: 2, front: 'en', theme: 'system', ...DEF_EXTRA };
   }
   function newState() {
     return { v: 2, prog: {}, stars: {}, wrong: {}, days: {}, tests: [], nt: null, best: 0, xpTotal: 0, settings: defaultSettings(), session: null, spots: {} };
@@ -361,7 +393,7 @@ const Logic = (() => {
       .sort((a, b) => state.prog[a.id][1] - state.prog[b.id][1] || state.prog[a.id][0] - state.prog[b.id][0] || a.i - b.i)
       .map(e => e.id);
     const rev = pendingNew.concat(due).slice(0, fresh.length ? LESSON_REV : REVIEW_LESSON);
-    const steps = shuffle(rev.map(id => ntSet.has(id) ? { k: 'q', id, qt: 'mcq-ko', nw: 1 } : { k: 'q', id, qt: reviewType(state.prog[id][0], s, hasAudio) }));
+    const steps = shuffle(rev.map(id => ntSet.has(id) ? { k: 'q', id, qt: 'mcq-ko', nw: 1 } : { k: 'q', id, qt: s.review !== 'card' && multiOK(W.byId.get(id)) && state.prog[id][0] >= 2 && rand() < 0.3 ? 'multi' : reviewType(state.prog[id][0], s, hasAudio) }));
     for (const id of fresh) steps.push({ k: 'learn', id });
     for (const id of shuffle(fresh.slice())) steps.push({ k: 'q', id, qt: 'mcq-ko', nw: 1 });
     if (fresh.length >= 3) steps.push({ k: 'match', ids: shuffle(fresh.slice()) });
@@ -468,6 +500,7 @@ const Logic = (() => {
   }
   function buildTest(state, W, spec, T) {
     let ids = rangeIds(state, W, spec.range, T);
+    if (spec.qt === 'multi') ids = ids.filter(id => multiOK(W.byId.get(id)));   // only words that have several meanings
     ids = spec.range.t === 'ids' ? ids.slice() : shuffle(ids.slice());
     if (spec.count && spec.count < ids.length) ids = ids.slice(0, spec.count);
     const steps = spec.qt === 'write' ? writeSteps(W, ids, spec.hasAudio)
@@ -511,7 +544,7 @@ const Logic = (() => {
 
   return {
     INTERVAL, MAXBOX, MASTER, MIX_TYPES, LESSON_NEW, LESSON_REV, REVIEW_LESSON, DAILY_TEST, dayNum, dayKey, seed, shuffle, pick,
-    stems, posOf, synonymsOf, prepare, related, makeQuestion, splitEx, checkSpell, normSpell, checkKo,
+    stems, posOf, synonymsOf, prepare, related, makeQuestion, splitEx, checkSpell, normSpell, checkKo, configure, meaningItems, multiOK,
     defaultSettings, newState, sanitize, fromV1, dayStats, dayMet, addXp, streak, touchBest,
     pickNew, ensurePlan, refreshPlan, todayPlan, dayPlan, planStatus, statusOf,
     buildLesson, lessonUnits, answerLesson, answerMatch, finishLesson,
