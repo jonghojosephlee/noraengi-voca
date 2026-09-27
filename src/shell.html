@@ -1,0 +1,52 @@
+<!--@HEAD@-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500..900&family=Nunito:wght@600..1000&display=swap">
+<style>
+/*@CSS@*/
+</style>
+<!--@BODY@-->
+<div id="app">
+  <section class="screen flow" id="s-boot"><div class="wrap unlock"><p class="muted" style="text-align:center">불러오는 중…</p></div></section>
+  <section class="screen flow" id="s-unlock" hidden></section>
+  <section class="screen tabbed" id="s-home" hidden></section>
+  <section class="screen tabbed" id="s-words" hidden></section>
+  <section class="screen tabbed" id="s-day" hidden></section>
+  <section class="screen tabbed" id="s-test" hidden></section>
+  <section class="screen tabbed" id="s-stats" hidden></section>
+  <section class="screen tabbed" id="s-settings" hidden></section>
+  <section class="screen flow" id="s-quiz" hidden>
+    <div class="wrap">
+      <header class="qhead">
+        <button class="ibtn" type="button" data-act="quit" aria-label="그만하기"></button>
+        <div class="qbar" role="progressbar" aria-label="진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="qbarFill"></i></div>
+        <span class="combo" id="combo" hidden></span>
+      </header>
+      <div class="qbody" id="qbody"></div>
+      <div class="qfoot" id="qfoot"></div>
+    </div>
+  </section>
+  <section class="screen flow" id="s-result" hidden></section>
+  <section class="screen flow" id="s-browse" hidden></section>
+  <section class="screen flow" id="s-auto" hidden></section>
+</div>
+<nav class="tabs" id="tabs" hidden aria-label="메뉴"><div class="in">
+  <button class="tab" type="button" data-act="tab" data-tab="home" id="tab-home"></button>
+  <button class="tab" type="button" data-act="tab" data-tab="words" id="tab-words"></button>
+  <button class="tab" type="button" data-act="tab" data-tab="test" id="tab-test"></button>
+  <button class="tab" type="button" data-act="tab" data-tab="stats" id="tab-stats"></button>
+</div></nav>
+<div class="fb" id="fb" aria-live="polite"><div class="in" id="fbIn"></div></div>
+<div class="sheet-wrap" id="sheet" hidden><div class="sheet" id="sheetIn" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<canvas id="confetti" hidden></canvas>
+<input type="file" id="filePick" class="vh" tabindex="-1" aria-hidden="true">
+<script>window.__CV__ = /*@CONFIG@*/;</script>
+<script>/*@WORDS@*/</script>
+<script>
+/*@LOGIC@*/
+</script>
+<script>
+/*@APP@*/
+</script>
+<!--@END@-->

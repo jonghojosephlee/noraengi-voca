@@ -1,0 +1,16 @@
+{
+  "name": "노랭이 보카",
+  "short_name": "노랭이 보카",
+  "description": "노랭이 단어장을 카드와 퀴즈로 쉽게 외우는 간격 반복 단어장",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff8e6",
+  "theme_color": "#f0ac00",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
