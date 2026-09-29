@@ -92,15 +92,25 @@ svg{display:block}
 
 /* mascot */
 .mascot{width:110px;height:110px;overflow:visible;flex:none}
-.mascot .m-shadow{fill:rgb(0 0 0 / .1)}
-.mascot .m-stem{stroke:var(--green-deep);stroke-width:5;stroke-linecap:round;fill:none}
-.mascot .m-leaf1{fill:#6fdc8f}
-.mascot .m-leaf2{fill:#43c56f}
+.mascot .m-shadow{fill:rgb(0 0 0 / .12)}
+.mascot .m-stem{stroke:#1f9a4d;stroke-width:4.6;stroke-linecap:round;fill:none}
+.mascot .m-leaf1{fill:#7fe3a1}
+.mascot .m-leaf2{fill:#3fc46d}
 .mascot .m-blob{fill:var(--pet,var(--green))}
-.mascot .m-belly{fill:#fff;opacity:.22}
+.mascot .m-blob{stroke:rgb(0 0 0 / .07);stroke-width:1.2}
+.mascot .m-shade{fill:#000;opacity:.07}
+.mascot .m-shine{fill:#fff;opacity:.5}
+.mascot .m-vein{stroke:#fff;stroke-width:1.7;stroke-linecap:round;fill:none;opacity:.5}
+.mascot .m-cheek2{fill:#ff6f96;opacity:.3}
+.mascot .m-tear{fill:#6ec1ff;stroke:#fff;stroke-width:.9;display:none}
+.mascot[data-mood="sad"] .m-tear{display:inline}
+.mascot .m-all>.m-blob,.mascot .m-all>.m-shade,.mascot .m-all>.m-belly{transform-box:fill-box;transform-origin:50% 100%;animation:breathe 3.8s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.015,.985)}}
+@media (prefers-reduced-motion: reduce){.mascot .m-all>.m-blob,.mascot .m-all>.m-shade,.mascot .m-all>.m-belly{animation:none}}
+.mascot .m-belly{fill:#fff;opacity:.16}
 .mascot .m-pupil{fill:var(--face)}
-.mascot .m-line{stroke:var(--face);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
-.mascot .m-cheek{fill:#ff8fa3;opacity:.6}
+.mascot .m-line{stroke:var(--face);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.mascot .m-cheek{fill:#ff8fab;opacity:.42}
 .mascot .m-fill{fill:var(--face)}
 .mascot .m-tongue{fill:#ff7a8a}
 .mascot .m-spark{fill:var(--gold)}
@@ -579,3 +589,8 @@ details.howto[open] summary::after{content:" ▴"}
 .panel.friend .ft b{font-size:17px;font-weight:900}
 .panel.friend .ft span{font-size:15px;font-weight:800;color:var(--ink)}
 .panel.friend .ft small{font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.45}
+/* 학습한 단어: filters and the day headers */
+.lfilter{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+.lfilter .seg{flex:1 1 auto}
+.wlist .wdate{list-style:none;padding:12px 16px 6px;font-size:13px;font-weight:900;color:var(--green-ink);background:var(--surface-2);border-top:2px solid var(--line)}
+.wlist .wdate:first-child{border-top:0;border-radius:18px 18px 0 0}

@@ -74,22 +74,36 @@ const ring = (size, stroke, parts, track = 'var(--surface-3)') => {
 
 function mascot(mood = 'idle', cls = '') {   // the app's sprout character (초록이 / 노랭이); CSS picks the face for data-mood
   return `<svg class="mascot ${cls}" data-mood="${mood}" viewBox="0 0 120 120" aria-hidden="true">
-  <ellipse class="m-shadow" cx="60" cy="114" rx="30" ry="5"/>
+  <ellipse class="m-shadow" cx="60" cy="113" rx="29" ry="4.6"/>
   <g class="m-all">
-    <g class="m-leaves"><path class="m-stem" d="M60 34V19"/><path class="m-leaf1" d="M59 22C47 9 29 11 25 20c9 10 25 11 34 2z"/><path class="m-leaf2" d="M61 20c11-14 30-13 34-4-8 11-25 13-34 4z"/></g>
-    <path class="m-blob" d="M60 30c28 0 43 20 43 43 0 24-18 36-43 36S17 97 17 73c0-23 15-43 43-43z"/>
-    <ellipse class="m-belly" cx="60" cy="83" rx="27" ry="19"/>
-    <g class="m-open"><ellipse cx="45" cy="65" rx="8.5" ry="10.5" fill="#fff"/><ellipse cx="75" cy="65" rx="8.5" ry="10.5" fill="#fff"/><circle class="m-pupil" cx="46.5" cy="67" r="5.2"/><circle class="m-pupil" cx="76.5" cy="67" r="5.2"/><circle cx="48.6" cy="63.6" r="1.9" fill="#fff"/><circle cx="78.6" cy="63.6" r="1.9" fill="#fff"/></g>
-    <g class="m-joy"><path class="m-line" d="M37 67q8-10 16 0M67 67q8-10 16 0"/></g>
-    <g class="m-sad"><path class="m-line" d="M38 62l13-5M82 62l-13-5"/><circle class="m-pupil" cx="46" cy="70" r="4.4"/><circle class="m-pupil" cx="74" cy="70" r="4.4"/></g>
-    <g class="m-sleep"><path class="m-line" d="M38 68h14M68 68h14"/></g>
-    <ellipse class="m-cheek" cx="35" cy="81" rx="6.5" ry="4"/><ellipse class="m-cheek" cx="85" cy="81" rx="6.5" ry="4"/>
-    <path class="m-smile m-line" d="M52 83q8 8 16 0"/>
-    <g class="m-grin"><path class="m-fill" d="M48 81q12 18 24 0z"/><path class="m-tongue" d="M53.5 87.5q6.5 5.5 13 0q-6.5-3-13 0z"/></g>
-    <path class="m-frown m-line" d="M52 91q8-7 16 0"/>
-    <circle class="m-o m-fill" cx="60" cy="87" r="3.6"/>
+    <g class="m-leaves">
+      <path class="m-stem" d="M60 35c0-6-.6-10.5-2-15.5"/>
+      <path class="m-leaf1" d="M58.5 22.5C51 10.5 35.5 7.5 25.5 13.5c4.5 11.5 20 17.5 33 9z"/>
+      <path class="m-leaf2" d="M60.5 20.5c6.5-13 23-17.5 34-11.5-4 13-21 19-34 11.5z"/>
+      <path class="m-vein" d="M56.5 21.5C49 15.5 39.5 13.5 31 14.5M62.5 19.5c7.5-7 17-10 27-9"/>
+    </g>
+    <path class="m-blob" d="M60 32c27.5 0 42.5 19.5 42.5 42.5C102.5 98 85 110 60 110S17.5 98 17.5 74.5C17.5 51.5 32.5 32 60 32z"/>
+    <path class="m-shade" d="M20.5 84c5 17 21 26 39.5 26s34.5-9 39.5-26c-7.5 11-21.5 17.5-39.5 17.5S28 95 20.5 84z"/>
+    <ellipse class="m-belly" cx="60" cy="86" rx="25" ry="16.5"/>
+    <ellipse class="m-shine" cx="40.5" cy="50.5" rx="11.5" ry="6.5" transform="rotate(-28 40.5 50.5)"/>
+    <circle class="m-shine" cx="29.5" cy="62" r="2.6" opacity=".7"/>
+    <g class="m-open">
+      <ellipse class="m-pupil" cx="45.5" cy="68" rx="6.4" ry="7.8"/><ellipse class="m-pupil" cx="74.5" cy="68" rx="6.4" ry="7.8"/>
+      <circle cx="47.9" cy="64.6" r="2.5" fill="#fff"/><circle cx="76.9" cy="64.6" r="2.5" fill="#fff"/>
+      <circle cx="43.8" cy="71.6" r="1.15" fill="#fff" opacity=".85"/><circle cx="72.8" cy="71.6" r="1.15" fill="#fff" opacity=".85"/>
+    </g>
+    <g class="m-joy"><path class="m-line" d="M38.5 70q7-9.5 14 0M67.5 70q7-9.5 14 0"/></g>
+    <g class="m-sad"><path class="m-line" d="M37.5 60.5l12.5-4M82.5 60.5l-12.5-4"/><ellipse class="m-pupil" cx="46" cy="70" rx="4.8" ry="5.6"/><ellipse class="m-pupil" cx="74" cy="70" rx="4.8" ry="5.6"/><circle cx="47.6" cy="68" r="1.6" fill="#fff"/><circle cx="75.6" cy="68" r="1.6" fill="#fff"/></g>
+    <g class="m-sleep"><path class="m-line" d="M38.5 68.5q7 6 14 0M67.5 68.5q7 6 14 0"/></g>
+    <ellipse class="m-cheek" cx="34.5" cy="81" rx="7.5" ry="4.6"/><ellipse class="m-cheek" cx="85.5" cy="81" rx="7.5" ry="4.6"/>
+    <ellipse class="m-cheek2" cx="34.5" cy="81" rx="4.2" ry="2.5"/><ellipse class="m-cheek2" cx="85.5" cy="81" rx="4.2" ry="2.5"/>
+    <path class="m-tear" d="M84.5 73.5c2.6 3.6 3.4 5.6 3.4 7a3.4 3.4 0 0 1-6.8 0c0-1.4.8-3.4 3.4-7z"/>
+    <path class="m-smile m-line" d="M53.5 81.5q3.2 4 6.5 0q3.3 4 6.5 0"/>
+    <g class="m-grin"><path class="m-fill" d="M49 80.5q11 16 22 0z"/><path class="m-tongue" d="M54 87.5q6 5 12 0q-6-3.2-12 0z"/></g>
+    <path class="m-frown m-line" d="M53.5 90q6.5-5.5 13 0"/>
+    <ellipse class="m-o m-fill" cx="60" cy="86.5" rx="3.2" ry="3.8"/>
   </g>
-  <g class="m-spark"><path d="M14 34l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M104 44l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>
+  <g class="m-spark"><path d="M14 34l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M104 44l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><circle cx="99" cy="26" r="2.4"/></g>
   <g class="m-zz"><text x="90" y="34">z</text><text x="100" y="22">z</text></g>
 </svg>`;
 }
@@ -1284,6 +1298,7 @@ function releaseWake() { try { if (wake) wake.release(); } catch (e) {} wake = n
 let wq = '';
 function renderWords() {
   const stars = W.words.filter(e => state.stars[e.id]).length, wrong = W.words.filter(e => state.wrong[e.id]).length;
+  const learnedN = W.words.filter(e => state.prog[e.id]).length, masterN = W.words.filter(e => state.prog[e.id] && state.prog[e.id][0] >= L.MASTER).length;
   const dayRows = W.days.map(d => {
     const ws = W.byDay.get(d);
     let m = 0, l = 0;
@@ -1302,6 +1317,7 @@ function renderWords() {
       $('wbody').innerHTML = hits.length ? `<p class="muted" style="font-size:13px;margin:0 4px 8px">검색 결과 ${hits.length}개</p><ul class="panel wlist">${hits.map(e => rowHTML(e, { showDay: true })).join('')}</ul>` : '<div class="empty">찾는 단어가 없어요</div>';
     } else {
       $('wbody').innerHTML = `<div class="panel list" style="margin-bottom:16px">
+        <button class="li" type="button" data-act="learnedList"><span class="ic i-green">${I.book}</span><span class="t"><b>학습한 단어</b><small>${fmt(learnedN)}단어 · 학습 중 ${fmt(learnedN - masterN)} · 암기 완료 ${fmt(masterN)}</small></span>${I.chev.replace('<svg', '<svg class="go"')}</button>
         <button class="li" type="button" data-act="starList"><span class="ic i-gold">${I.star}</span><span class="t"><b>즐겨찾기</b><small>${stars}단어</small></span>${I.chev.replace('<svg', '<svg class="go"')}</button>
         <button class="li" type="button" data-act="wrongList"><span class="ic i-red">${I.note}</span><span class="t"><b>오답노트</b><small>${wrong}단어 · 틀린 횟수 순</small></span>${I.chev.replace('<svg', '<svg class="go"')}</button>
         <button class="li" type="button" data-act="autoToday"><span class="ic i-blue">${I.headphones}</span><span class="t"><b>듣기 모드</b><small>오늘 단어 자동 재생</small></span>${I.chev.replace('<svg', '<svg class="go"')}</button>
@@ -1317,24 +1333,38 @@ function listFor(v) {
   if (v.t === 'day') return W.byDay.get(v.d) || [];
   if (v.t === 'stars') return W.words.filter(e => state.stars[e.id]);
   if (v.t === 'wrong') return L.rangeIds(state, W, { t: 'wrong' }, today()).map(id => W.byId.get(id));
+  if (v.t === 'learned') {   // studied words: newest first (by the day last studied), or in book order
+    let ws = W.words.filter(e => state.prog[e.id]);
+    if (v.f === 'learning') ws = ws.filter(e => state.prog[e.id][0] < L.MASTER);
+    else if (v.f === 'master') ws = ws.filter(e => state.prog[e.id][0] >= L.MASTER);
+    return v.o === 'day' ? ws : ws.slice().sort((a, b) => state.prog[b.id][4] - state.prog[a.id][4] || a.i - b.i);
+  }
   return [];
+}
+function listTitle(v) { return v.t === 'day' ? 'Day ' + pad2(v.d) : v.t === 'stars' ? '즐겨찾기' : v.t === 'wrong' ? '오답노트' : '학습한 단어'; }
+function studiedLabel(d) {   // a day number -> "오늘 · 9월 30일 (화)"
+  const date = new Intl.DateTimeFormat('ko-KR', { timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(d * 864e5));
+  return `${relDay(L.dayKey(d))} · ${date}`;
 }
 function renderDay(v) {
   if (v) dayView = v;
   v = dayView;
-  const list = listFor(v), title = v.t === 'day' ? 'Day ' + pad2(v.d) : v.t === 'stars' ? '즐겨찾기' : '오답노트';
+  const list = listFor(v), title = listTitle(v), learned = v.t === 'learned', recent = learned && v.o !== 'day';
   let m = 0, l = 0;
   for (const e of list) { const p = state.prog[e.id]; if (p) { if (p[0] >= L.MASTER) m++; else l++; } }
   $('s-day').innerHTML = `<div class="wrap">
     <div class="topbar"><button class="ibtn" type="button" data-act="back" aria-label="뒤로">${I.back}</button><h1 style="flex:1">${title}</h1></div>
     <p class="muted" style="margin:-8px 4px 0;font-size:13.5px">${list.length}단어 · 학습 ${m + l} · 암기 완료 ${m}</p>
+    ${learned ? `<div class="lfilter"><div class="seg">${[['all', '전체'], ['learning', '학습 중'], ['master', '암기 완료']].map(([k, x]) => `<button type="button" data-act="lf" data-v="${k}" aria-pressed="${(v.f || 'all') === k}">${x}</button>`).join('')}</div>
+      <div class="seg">${[['recent', '최근 공부 순'], ['day', 'Day 순']].map(([k, x]) => `<button type="button" data-act="lo" data-v="${k}" aria-pressed="${(v.o || 'recent') === k}">${x}</button>`).join('')}</div></div>` : ''}
     ${list.length ? `<div class="actions">
       <button class="act" type="button" data-act="listBrowse"><i class="i-green">${I.cards}</i>카드로 보기</button>
       <button class="act" type="button" data-act="listAuto"><i class="i-blue">${I.headphones}</i>듣기</button>
       <button class="act" type="button" data-act="listTest"><i class="i-gold">${I.quiz}</i>테스트</button>
     </div>
-    <ul class="panel wlist">${list.map(e => rowHTML(e, { showDay: v.t !== 'day', wrong: v.t === 'wrong' })).join('')}</ul>` :
-    `<div class="empty">${mascot('sleep', 'float')}${v.t === 'stars' ? '단어 옆 ☆를 누르면 여기에 모여요' : '틀린 단어가 여기에 모여요. 아직 하나도 없어요!'}</div>`}
+    <ul class="panel wlist">${list.map((e, i) => (recent && (i === 0 || state.prog[e.id][4] !== state.prog[list[i - 1].id][4]) ? `<li class="wdate">${esc(studiedLabel(state.prog[e.id][4]))}</li>` : '') +
+      rowHTML(e, { showDay: v.t !== 'day', wrong: v.t === 'wrong' })).join('')}</ul>` :
+    `<div class="empty">${mascot('sleep', 'float')}${v.t === 'stars' ? '단어 옆 ☆를 누르면 여기에 모여요' : v.t === 'wrong' ? '틀린 단어가 여기에 모여요. 아직 하나도 없어요!' : learned && v.f && v.f !== 'all' ? '아직 여기에 들어갈 단어가 없어요' : '아직 학습한 단어가 없어요. 오늘의 학습을 시작해 봐요!'}</div>`}
   </div>`;
 }
 function listKey(v) { return v.t === 'day' ? 'd' + v.d : v.t; }
@@ -1716,6 +1746,9 @@ const ACT = {
   day: el => go('day', { t: 'day', d: Number(el.dataset.day), from: screen }),
   starList: () => go('day', { t: 'stars', from: screen }),
   wrongList: () => go('day', { t: 'wrong', from: screen }),
+  learnedList: () => go('day', { t: 'learned', from: screen }),
+  lf: el => { dayView.f = el.dataset.v; renderDay(); },
+  lo: el => { dayView.o = el.dataset.v; renderDay(); },
   say: el => { sayBtnFeedback(el); Voice.play(el.dataset.id); },
   sayEx: el => { sayBtnFeedback(el); if (Q) clearTimeout(Q.autoT); Voice.play(el.dataset.id, Number(el.dataset.si) || 0); },
   sayCk: el => { sayBtnFeedback(el); if (Q) clearTimeout(Q.autoT); Voice.playPart(el.dataset.id, Number(el.dataset.si) || 0, Number(el.dataset.k) || 0); },
@@ -1743,10 +1776,10 @@ const ACT = {
   sheet: el => closeSheet(el.dataset.v),
   obPick: el => { state.settings.daily = Number(el.dataset.v); for (const b of document.querySelectorAll('#obSeg button')) b.setAttribute('aria-pressed', String(b === el)); const pc = $('obPace'); if (pc) pc.textContent = paceText(state.settings.daily); },
   autoToday: () => { const p = L.todayPlan(state, W, today()); const ids = (state.nt && state.nt.d === today() ? state.nt.ids : p.planned); startAuto(ids, '오늘의 단어', null); },
-  listBrowse: () => startBrowse(listFor(dayView).map(e => e.id), dayView.t === 'day' ? 'Day ' + pad2(dayView.d) : dayView.t === 'stars' ? '즐겨찾기' : '오답노트', listKey(dayView)),
-  listAuto: () => startAuto(listFor(dayView).map(e => e.id), dayView.t === 'day' ? 'Day ' + pad2(dayView.d) : dayView.t === 'stars' ? '즐겨찾기' : '오답노트', listKey(dayView)),
+  listBrowse: () => startBrowse(listFor(dayView).map(e => e.id), listTitle(dayView), listKey(dayView)),
+  listAuto: () => startAuto(listFor(dayView).map(e => e.id), listTitle(dayView), listKey(dayView)),
   listTest: () => {
-    const ids = listFor(dayView).map(e => e.id), label = dayView.t === 'day' ? 'Day ' + pad2(dayView.d) : dayView.t === 'stars' ? '즐겨찾기' : '오답노트';
+    const ids = listFor(dayView).map(e => e.id), label = listTitle(dayView);
     startTest({ range: { t: 'ids', ids: L.shuffle(ids.slice()) }, qt: 'mix', count: 20, label });
   },
   browseIds: el => startBrowse(el.dataset.ids.split(','), el.dataset.label || '카드', null),

@@ -1,4 +1,4 @@
-const VERSION = '1.0.9-b9484cf316';
+const VERSION = '1.0.10-a907d2d2ca';
 const P = 'nv';                // this app's cache names (초록 cv-, 노랭이 nv-: both apps share one origin)
 const AUDIO_KEEP = ["d01.bin?v=5e5baa9768", "d02.bin?v=9c7649ce29", "d03.bin?v=4e1c70ba21", "d04.bin?v=450dcee627", "d05.bin?v=1d409e23cb", "x01.bin?v=96fb35916f", "x02.bin?v=b99e976b1d", "x03.bin?v=c00332a52f", "x04.bin?v=03d6fea2a0", "x05.bin?v=94eb9bd21d"];    // the current audio packs of each Day ("d01.bin?v=<hash>", examples "x01.bin?v=<hash>")
 const OLD = {"prefixes": [], "names": []};                  // caches an older build of this app left behind
