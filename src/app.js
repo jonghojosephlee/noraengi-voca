@@ -231,7 +231,7 @@ function adoptStored() {
 }
 window.addEventListener('storage', ev => { if (ev.key === K_AT && state && W && Local.at() > (state.at || 0)) adoptStored(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') { pauseTimers(); flush(); Sound.release(); if (Cloud.ready) Cloud.flush(); }
+  if (document.visibilityState === 'hidden') { pauseTimers(); flush(); Sound.release(); if (Cloud.ready) Cloud.flush(); if (Sync.on()) Sync.sendProgress().catch(() => {}); }
   else { if (Q) Q.t0 = Date.now(); Sound.check(); if (state && W && Local.at() > (state.at || 0)) adoptStored(); }
 });
 window.addEventListener('pagehide', () => { flush(); Sound.release(); if (Cloud.ready) Cloud.flush(); });
@@ -721,6 +721,7 @@ function renderHome() {
       ${total ? `<div class="plan-h"><b>오늘의 학습</b><span>${doneN} / ${total}</span></div><ol class="plan">${steps}</ol>` : ''}
       ${cta}${more}
     </div>
+    ${friendHTML(true)}
     <div class="overall"><div class="overall-t"><span>전체 진도${cur ? ` · 지금 Day ${pad2(cur)}` : ''}</span><b>${fmt(learned)} / ${fmt(W.words.length)}단어 · ${pct}%</b></div><div class="bar" role="progressbar" aria-label="전체 진도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>
   </div>`;
   if (!s.onboarded) setTimeout(onboard, 350);
@@ -1044,11 +1045,13 @@ function finish() {
     state.lesson = null;
     save(); flush();
     renderLessonResult(s, r);
+    Sync.soon();
   } else {
     const r = L.finishTest(state, s);
     state.test = null;
     save(); flush();
     renderTestResult(s, r);
+    Sync.soon();
   }
   Q = null;
   show('result');
@@ -1386,6 +1389,10 @@ function tbLabel() {
 
 /* ---------- stats ---------- */
 function renderStats() {
+  if (Sync.on()) Sync.loadFriend().then(() => { if (screen === 'stats') renderStatsOnly(); });
+  renderStatsOnly();
+}
+function renderStatsOnly() {
   const T = today(), s = state, goal = s.settings.goal, streak = L.streak(s, T);
   const all = Object.values(s.prog), master = all.filter(p => p[0] >= L.MASTER).length;
   const todayXp = (s.days[L.dayKey(T)] || {}).xp || 0;
@@ -1410,6 +1417,7 @@ function renderStats() {
   const hist = s.tests.slice(0, 8).map(t => { const pct = t.n ? Math.round(t.ok / t.n * 100) : 0; return `<div class="li"><span class="ic ${pct >= 70 ? 'i-green' : 'i-gold'}">${I.quiz}</span><span class="t"><b>${esc(t.label || '테스트')}</b><small>${new Date(t.at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} · ${t.ok}/${t.n}</small></span><span class="sc">${pct}%</span></div>`; }).join('');
   $('s-stats').innerHTML = `<div class="wrap">
     <div class="topbar"><h1>기록</h1><button class="ibtn" type="button" data-act="settings" aria-label="설정">${I.gear}</button></div>
+    ${friendHTML(false)}
     <div class="kpis">
       <div class="panel kpi"><small>${I.flame}연속 학습</small><b>${streak}일</b><span>최고 ${Math.max(s.best || 0, streak)}일</span></div>
       <div class="panel kpi"><small>${I.bolt}총 XP</small><b>${fmt(s.xpTotal)}</b><span>오늘 ${fmt(todayXp)} XP</span></div>
@@ -1430,7 +1438,7 @@ function segHTML(key, opts) { return `<div class="seg">${opts.map(([v, t]) => `<
 function swHTML(key, label) { return `<label class="switch"><input type="checkbox" data-set="${key}" ${state.settings[key] ? 'checked' : ''} aria-label="${esc(label)}"><i></i></label>`; }
 function renderSettings() {
   const st = state.settings;
-  const where = PWA ? '이 폰 안에만 저장돼요. 서버로 보내지 않아요. 홈 화면에서 앱을 지우거나 웹사이트 데이터를 지우면 사라질 수 있으니 가끔 백업해 두세요.' : Cloud.ready ? 'claude.ai 계정에 저장돼요. 폰이나 PC 어디서 열어도 이어서 할 수 있어요.' : '이 브라우저에 저장돼요.';
+  const where = PWA && Sync.on() ? '학습 기록은 이 폰에 저장되고, 친구와 공유하는 하루 요약(연속 기록·단어 수)만 비공개 저장소로 보내요. 홈 화면에서 앱을 지우거나 웹사이트 데이터를 지우면 사라질 수 있으니 가끔 백업해 두세요.' : PWA ? '이 폰 안에만 저장돼요. 서버로 보내지 않아요. 홈 화면에서 앱을 지우거나 웹사이트 데이터를 지우면 사라질 수 있으니 가끔 백업해 두세요.' : Cloud.ready ? 'claude.ai 계정에 저장돼요. 폰이나 PC 어디서 열어도 이어서 할 수 있어요.' : '이 브라우저에 저장돼요.';
   $('s-settings').innerHTML = `<div class="wrap">
     <div class="topbar"><button class="ibtn" type="button" data-act="back" aria-label="뒤로">${I.back}</button><h1 style="flex:1">설정</h1></div>
     <p class="set-h">학습</p>
@@ -1442,6 +1450,13 @@ function renderSettings() {
       <div class="sr"><div class="t"><b>카드 앞면</b><span class="d">카드로 볼 때 먼저 보일 쪽</span></div>${segHTML('front', [['en', '영어'], ['ko', '한국어']])}</div>
       <div class="sr"><div class="t"><b>새 단어 시작 Day</b><span class="d">이미 아는 Day는 건너뛰기</span></div><select data-set="start" aria-label="새 단어 시작 Day">${W.days.map(d => `<option value="${d}" ${d === st.start ? 'selected' : ''}>Day ${pad2(d)}부터</option>`).join('')}</select></div>
     </div>
+    ${Sync.ready() ? `<p class="set-h">친구 · 알림</p>
+    <div class="panel set">
+      <div class="sr"><div class="t"><b>친구와 진도 공유</b><span class="d">오늘 공부했는지·연속 기록·단어 수만 서로 보여요 (단어별 기록은 안 보내요)</span></div>${swHTML('share', '친구와 진도 공유')}</div>
+      ${Sync.canNotify() ? `<div class="sr"><div class="t"><b>공부 알림</b><span class="d">${!state.settings.share ? '진도 공유를 켜야 쓸 수 있어요' : Notification.permission === 'denied' ? '아이폰 설정 > 알림에서 이 앱을 허용해 주세요' : `오늘 공부를 안 했으면 ${esc(APP.pet)}가 알려 줘요`}</span></div>${swHTML('notify', '공부 알림')}</div>
+      <div class="sr"><div class="t"><b>알림 시각</b><span class="d">이 시각까지 공부를 안 했으면</span></div><select data-set="notifyHour" aria-label="알림 시각">${[18, 19, 20, 21, 22, 23].map(h => `<option value="${h}" ${h === (state.settings.notifyHour || 20) ? 'selected' : ''}>${hourText(h)}</option>`).join('')}</select></div>`
+        : `<div class="sr"><div class="t"><b>공부 알림</b><span class="d">${standalone ? '이 기기에서는 알림을 쓸 수 없어요' : '홈 화면에 추가한 앱에서 켤 수 있어요'}</span></div></div>`}
+    </div>` : ''}
     <p class="set-h">소리</p>
     <div class="panel set">
       <div class="sr"><div class="t"><b>효과음</b><span class="d">정답·오답·완료 소리</span></div>${swHTML('sfx', '효과음')}</div>
@@ -1564,6 +1579,130 @@ async function unlock() {
   } finally { unlocking = false; const b = $('unlockBtn'); if (b) b.disabled = false; }
 }
 
+/* ---------- friend progress and study reminders ----------
+   Only when this build has CFG.sync (a token for the private repo voca-sync, sealed with the app's code) and the learner
+   says yes. progress/<app>.json: a daily summary (no per-word data); push/<app>.json: this phone's push subscription and
+   reminder hour. The repo's hourly workflow sends the reminder. */
+const utf8b64 = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < u.length; i++) bin += String.fromCharCode(u[i]); return btoa(bin); };
+const b64utf8 = s => { const bin = atob(String(s).replace(/\s+/g, '')), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new TextDecoder().decode(u); };
+const b64uBytes = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); return b64.dec(s + '='.repeat((4 - s.length % 4) % 4)); };
+const Sync = {
+  tok: null, sha: {}, t: 0, loading: null,
+  ready() { return !!(PWA && CFG.sync && localStorage.getItem(K_KEY)); },
+  on() { return this.ready() && state && state.settings.share === true; },
+  canNotify() { return !!(this.ready() && CFG.sync.vapid && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window); },
+  async token() {
+    if (this.tok) return this.tok;
+    const res = await fetch(CFG.sync.bin, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('sync ' + res.status);
+    const plain = await Crypto.open(await Crypto.stored(), await res.arrayBuffer());
+    return (this.tok = JSON.parse(new TextDecoder().decode(plain)).token);
+  },
+  async call(path, opts = {}) {
+    const tok = await this.token();
+    return fetch(`https://api.github.com/repos/${CFG.sync.repo}/contents/${path}`, Object.assign({ cache: 'no-store' }, opts, {
+      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } }));
+  },
+  async get(path) {
+    const r = await this.call(path);
+    if (r.status === 404) { delete this.sha[path]; return null; }
+    if (!r.ok) throw new Error('get ' + r.status);
+    const j = await r.json();
+    this.sha[path] = j.sha;
+    return JSON.parse(b64utf8(j.content));
+  },
+  async put(path, obj) {
+    const body = { message: `${CFG.sync.me}: ${path}`, content: utf8b64(JSON.stringify(obj, null, 1) + '\n') };
+    for (let k = 0; k < 3; k++) {
+      if (!(path in this.sha)) await this.get(path).catch(() => {});   // an existing file needs its sha
+      if (this.sha[path]) body.sha = this.sha[path]; else delete body.sha;
+      const r = await this.call(path, { method: 'PUT', body: JSON.stringify(body) });
+      if (r.ok) { const j = await r.json(); this.sha[path] = j.content && j.content.sha; return true; }
+      if (r.status !== 409 && r.status !== 422) throw new Error('put ' + r.status);
+      delete this.sha[path];   // someone else wrote it meanwhile: read its sha and try again
+    }
+    return false;
+  },
+  summary() {   // what the friend sees: today's status, streak and counts, never the words themselves
+    const T = today(), key = L.dayKey(T), d = state.days[key] || {};
+    let week = 0; for (let i = 0; i < 7; i++) { const x = state.days[L.dayKey(T - i)]; week += (x && x.xp) || 0; }
+    const active = Object.keys(state.days).filter(k => (state.days[k].t || 0) > 0 || (state.days[k].lessons || 0) > 0).sort();
+    return { app: APP.id, day: key, studied: (d.t || 0) > 0 || (d.lessons || 0) > 0, done: L.planStatus(state, W, T).finished, xp: d.xp || 0, week,
+      streak: L.streak(state, T), best: state.best || 0, learned: Object.keys(state.prog).length,
+      mastered: Object.values(state.prog).filter(p => p[0] >= L.MASTER).length, total: W.words.length, last: active[active.length - 1] || '', at: Date.now() };
+  },
+  async sendProgress() {
+    if (!this.on()) return;
+    const s = this.summary(), sig = JSON.stringify(Object.assign({}, s, { at: 0 }));
+    if (sig === this.lastSig) return;   // nothing new since the last upload
+    if (await this.put(`progress/${CFG.sync.me}.json`, s)) this.lastSig = sig;
+  },
+  soon() { clearTimeout(this.t); this.t = setTimeout(() => this.sendProgress().catch(() => {}), 2500); },
+  async loadFriend(force) {   // the other app's summary, at most every 5 minutes
+    if (!this.on()) return null;
+    const c = state.friend;
+    if (!force && c && Date.now() - c.at < 5 * 60e3) return c.data;
+    if (this.loading) return this.loading;
+    this.loading = this.get(`progress/${CFG.sync.other}.json`)
+      .then(f => { state.friend = { data: f, at: Date.now() }; save(); return f; })
+      .catch(e => { state.friend = Object.assign({}, state.friend || { data: null }, { at: Date.now(), err: true }); return state.friend.data; })
+      .finally(() => { this.loading = null; });
+    return this.loading;
+  },
+  async enable() {   // call inside a tap: Safari asks for permission only in response to one
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { state.settings.notify = false; save(); return perm; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(CFG.sync.vapid) });
+    state.settings.notify = true; save();
+    await this.savePush(sub);
+    return 'granted';
+  },
+  async savePush(sub) {   // this phone's subscription (a phone keeps at most 3), whether reminders are on, and their hour
+    const path = `push/${CFG.sync.me}.json`, cur = (await this.get(path).catch(() => null)) || {};
+    let subs = (cur.subs || []).filter(s => !sub || s.endpoint !== sub.endpoint);
+    if (sub) { const j = sub.toJSON(); subs.push({ endpoint: j.endpoint, keys: j.keys, at: Date.now() }); }
+    await this.put(path, { on: !!state.settings.notify, hour: state.settings.notifyHour || 20, subs: subs.slice(-3) });
+    if (sub) { state.pushEp = sub.endpoint; save(); }
+  },
+  async refreshPush() {   // on launch: iOS can hand out a new subscription; keep the stored one current
+    if (!this.canNotify() || !state.settings.notify || Notification.permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(CFG.sync.vapid) });
+    if (sub && sub.endpoint !== state.pushEp) await this.savePush(sub);
+  },
+};
+const hourText = h => (h >= 18 ? '저녁 ' : h >= 12 ? '오후 ' : '오전 ') + (h > 12 ? h - 12 : h) + '시';   // 20 -> 저녁 8시
+function relDay(key) {   // "2026-09-28" -> 오늘 / 어제 / N일 전
+  const n = Math.round((Date.parse(L.dayKey(today())) - Date.parse(key)) / 864e5);
+  return n <= 0 ? '오늘' : n === 1 ? '어제' : `${n}일 전`;
+}
+function friendHTML(compact) {   // the other person's day, from their app's summary
+  if (!Sync.on()) return '';
+  const c = state.friend, f = c && c.data, key = L.dayKey(today());
+  const onToday = f && !f.off && f.day === key, mood = !f || f.off ? 'sleep' : onToday && f.done ? 'happy' : onToday && f.studied ? 'idle' : 'sleep';
+  const face = `<span class="fface" style="--pet:${CFG.sync.otherColor || 'var(--green)'}">${mascot(mood)}</span>`;
+  if (!f || f.off) {
+    if (compact) return '';
+    const why = !c ? '불러오는 중…' : c.err && !f ? '친구 기록을 불러오지 못했어요' : f && f.off ? '친구가 진도 공유를 쉬고 있어요' : '친구가 아직 진도 공유를 켜지 않았어요';
+    return `<div class="panel friend">${face}<div class="ft"><b>친구</b><span>${why}</span></div></div>`;
+  }
+  const status = onToday && f.done ? '오늘 학습 끝!' : onToday && f.studied ? `오늘 공부 중 · ${fmt(f.xp)} XP` : '오늘은 아직이에요';
+  const streak = f.day === key || f.day === L.dayKey(today() - 1) ? f.streak || 0 : 0;
+  if (compact) return `<button class="friendrow" type="button" data-act="tab" data-tab="stats">${face}<span><b>친구</b> · ${status}</span><span class="tchip flame ${streak ? 'on' : ''}">${streak ? I.flame : I.flameOff}${streak}</span></button>`;
+  return `<div class="panel friend">${face}<div class="ft"><b>친구</b><span>${status}</span>
+    <small>${streak ? `${streak}일 연속 · ` : ''}외운 단어 ${fmt(f.mastered)}개 · 배운 단어 ${fmt(f.learned)} / ${fmt(f.total)} · 이번 주 ${fmt(f.week)} XP${f.last ? ` · 마지막 공부 ${relDay(f.last)}` : ''}</small></div></div>`;
+}
+function askNotifyOnTap() {   // the first tap after the app opens: the iPhone's own "allow notifications?" (it can only appear from a tap)
+  if (!Sync.on() || !Sync.canNotify() || state.askedNotify || state.settings.notify || !state.onboarded || Notification.permission !== 'default') return;
+  state.askedNotify = true; save();
+  turnOnNotify();   // asks right inside this tap
+}
+function turnOnNotify() {   // from a tap (sheet button or settings switch)
+  Sync.enable().then(r => { toast(r === 'granted' ? `알림을 켰어요. ${hourText(state.settings.notifyHour || 20)}에 확인해요` : '알림이 꺼져 있어요. 아이폰 설정 > 알림에서 허용해 주세요'); if (screen === 'settings') renderSettings(); })
+    .catch(() => { toast('알림을 켜지 못했어요. 인터넷 연결을 확인해 주세요'); state.settings.notify = false; save(); if (screen === 'settings') renderSettings(); });
+}
+
 /* ---------- actions ---------- */
 function toggleStar(id, el) {
   if (state.stars[id]) delete state.stars[id]; else { state.stars[id] = 1; Sound.sfx('star'); }
@@ -1595,6 +1734,7 @@ const ACT = {
   hint: () => hint(),
   spellGo: () => spellGo(),
   koGo: () => koGo(),
+  notifyOn: () => { closeSheet('on'); turnOnNotify(); },
   mtoggle: el => mtoggle(Number(el.dataset.i)),
   multiGo: () => multiGo(),
   koSelf: el => koSelf(el.dataset.v === '1'),
@@ -1666,10 +1806,22 @@ document.addEventListener('change', ev => {
   state.settings[k] = el.type === 'checkbox' ? el.checked : /^\d+$/.test(el.value) ? Number(el.value) : el.value;
   if (k === 'start') L.refreshPlan(state, W, today());
   if (k === 'silent') Sound.session();
+  if (k === 'share') {
+    if (!el.checked && state.settings.notify) { state.settings.notify = false; Sync.savePush(null).catch(() => {}); }   // reminders need today's progress
+    if (el.checked) { Sync.sendProgress().catch(() => {}); Sync.loadFriend(true).then(() => renderSettings()); }
+    else { Sync.lastSig = ''; Sync.put(`progress/${CFG.sync.me}.json`, { app: APP.id, off: true, at: Date.now() }).catch(() => {}); }
+    renderSettings();
+  }
+  if (k === 'notify') {
+    if (el.checked && !state.settings.share) { state.settings.notify = false; el.checked = false; toast('진도 공유를 먼저 켜 주세요'); }
+    else if (el.checked) { state.settings.notify = false; turnOnNotify(); }   // on once the permission and subscription work
+    else Sync.savePush(null).catch(() => {});
+  }
+  if (k === 'notifyHour' && state.settings.notify) Sync.savePush(null).catch(() => {});
   save();
 });
 // every tap: resume Web Audio (or replace a stuck context) inside the user activation; touchend and click count as one
-const tapAudio = () => { Sound.wake(); Sound.unlock(); };
+const tapAudio = () => { Sound.wake(); Sound.unlock(); if (state && W) askNotifyOnTap(); };
 document.addEventListener('touchend', tapAudio, { capture: true, passive: true });
 document.addEventListener('click', tapAudio, { capture: true, passive: true });
 document.addEventListener('keydown', ev => {
@@ -1740,6 +1892,11 @@ function startApp(rows) {
   go('home');
   if (PWA && CFG.data && CFG.data.rev && storedRev() !== CFG.data.rev && localStorage.getItem(K_KEY)) refreshWords();
   if (PWA && localStorage.getItem(K_KEY)) setTimeout(() => Voice.topUp(), 4000);
+  if (Sync.ready()) setTimeout(() => {
+    Sync.sendProgress().catch(() => {});
+    Sync.refreshPush().catch(() => {});
+    Sync.loadFriend().then(() => { if (screen === 'home') renderHome(); else if (screen === 'stats') renderStats(); });
+  }, 2000);
   if (!PWA) {
     Cloud.connect().then(cloud => {
       if (!Cloud.ready) return;

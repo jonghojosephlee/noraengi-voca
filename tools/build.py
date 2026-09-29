@@ -69,6 +69,11 @@ aes = AESGCM(key)
 def seal(data):
     iv = secrets.token_bytes(12)
     return b'CVE1' + iv + aes.encrypt(iv, data, None)
+def unseal(b):
+    assert b[:4] == b'CVE1'
+    return aes.decrypt(b[4:16], b[16:], None)
+sys.path.insert(0, os.path.join(os.path.dirname(F), 'shared'))
+import sync_build   # friend progress + study reminders (voca-sync)
 
 shell = open(os.path.join(SRC, 'shell.html')).read()
 parts = {k: open(os.path.join(SRC, f)).read() for k, f in (('css', 'style.css'), ('logic', 'logic.js'), ('app', 'app.js'))}
@@ -113,6 +118,7 @@ for d, (b, n) in xpacks.items():
     open(os.path.join(out, 'data', 'audio', f'x{d:02d}.bin'), 'wb').write(sealed)
 cfg = {'mode': 'pwa', 'version': VERSION, 'app': APP, 'crypto': {'salt': sec['salt'], 'iter': ITER}, 'data': {'words': 'data/words.bin', 'rev': rev},
        'audio': {'base': 'data/audio/', 'enc': True, 'v': AUDIO_V, 'vs': AUDIO_VS, 'xs': AUDIO_XS, 'days': days, 'mb': max(1, round(tot / 1e6)), 'xmb': max(1, round(xtot / 1e6))}}
+SYNC_ON = bool(sync_build.add(cfg, 'noraengi', out, os.path.join(F, 'repo'), seal, unseal))
 html = page(HEAD, '</head>\n<body>', '</body>\n</html>\n', cfg)
 open(os.path.join(out, 'index.html'), 'w').write(html)
 digest = hashlib.sha256(html.encode() + words_bin).hexdigest()[:10]
@@ -123,4 +129,4 @@ assert not any(k in sw for k in ('__VERSION__', '__CACHE__', '__AUDIO_KEEP__', '
 open(os.path.join(out, 'sw.js'), 'w').write(sw)
 clips = sum(n for b, n in packs.values()) + sum(n for b, n in xpacks.values())
 print('built', VERSION, '| entries', len(rows), '| with examples', sum(1 for r in rows if len(r[3][0]) > 2), '| audio clips', clips, f'words {tot/1e6:.1f} MB + examples {xtot/1e6:.1f} MB', '| out', out)
-print('code', sec['code'][:4] + '-' + sec['code'][4:])
+print('code', sec['code'][:4] + '-' + sec['code'][4:], '| friend sync', 'on' if SYNC_ON else 'off (no token)')

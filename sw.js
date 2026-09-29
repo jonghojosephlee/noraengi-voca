@@ -1,4 +1,4 @@
-const VERSION = '1.0.7-409d8cb0de';
+const VERSION = '1.0.8-b58e6f0b7b';
 const P = 'nv';                // this app's cache names (초록 cv-, 노랭이 nv-: both apps share one origin)
 const AUDIO_KEEP = ["d01.bin?v=5e5baa9768", "d02.bin?v=9c7649ce29", "d03.bin?v=4e1c70ba21", "d04.bin?v=450dcee627", "d05.bin?v=1d409e23cb", "x01.bin?v=96fb35916f", "x02.bin?v=b99e976b1d", "x03.bin?v=c00332a52f", "x04.bin?v=03d6fea2a0", "x05.bin?v=94eb9bd21d"];    // the current audio packs of each Day ("d01.bin?v=<hash>", examples "x01.bin?v=<hash>")
 const OLD = {"prefixes": [], "names": []};                  // caches an older build of this app left behind
@@ -37,6 +37,20 @@ function cached(request, cacheName) {   // cache first
     return res;
   })));
 }
+
+// study reminders from the voca-sync workflow: {title, body, url, tag}
+self.addEventListener('push', event => {
+  let m = {};
+  try { m = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(self.registration.showNotification(m.title || '공부할 시간이에요', { body: m.body || '', icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: m.tag || 'study', data: { url: m.url || './' } }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) if ('focus' in c) return c.focus();
+    return self.clients.openWindow ? self.clients.openWindow('./') : null;
+  }));
+});
 
 self.addEventListener('fetch', event => {
   const req = event.request;

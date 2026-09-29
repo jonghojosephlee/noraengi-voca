@@ -250,7 +250,7 @@ const Logic = (() => {
   const DEF_EXTRA = {};
   function configure(o) { Object.assign(DEF_EXTRA, o || {}); }   // an app's own defaults (노랭이 reads meanings aloud)
   function defaultSettings() {
-    return { daily: 10, goal: 50, start: 1, review: 'quiz', spell: true, sfx: true, say: true, silent: true, koSay: false, repeat: 2, front: 'en', theme: 'system', ...DEF_EXTRA };
+    return { daily: 10, goal: 50, start: 1, review: 'quiz', spell: true, sfx: true, say: true, silent: true, koSay: false, repeat: 2, front: 'en', theme: 'system', share: true, notify: false, notifyHour: 20, ...DEF_EXTRA };
   }
   function newState() {
     return { v: 2, prog: {}, stars: {}, wrong: {}, days: {}, tests: [], nt: null, best: 0, xpTotal: 0, settings: defaultSettings(), session: null, spots: {} };

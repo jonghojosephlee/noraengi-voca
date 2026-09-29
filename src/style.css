@@ -568,3 +568,14 @@ details.howto[open] summary::after{content:" ▴"}
 .opts.multi .opt.sel{border-color:var(--blue);background:var(--blue-soft)}
 .opts.multi .opt.sel .k{background:var(--blue);color:#fff}
 .opts.multi .opt.missed{outline:3px dashed var(--green);outline-offset:-3px}
+/* the friend: one line on home, a card on 기록 */
+.friendrow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:18px;background:var(--surface);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);text-align:left;font:inherit;color:var(--ink);font-size:15px;font-weight:700}
+.friendrow>span:nth-child(2){flex:1;min-width:0}
+.fface{display:inline-flex;flex:none}
+.fface .mascot{width:40px;height:40px}
+.panel.friend{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.panel.friend .fface .mascot{width:56px;height:56px}
+.panel.friend .ft{display:flex;flex-direction:column;gap:3px;min-width:0}
+.panel.friend .ft b{font-size:17px;font-weight:900}
+.panel.friend .ft span{font-size:15px;font-weight:800;color:var(--ink)}
+.panel.friend .ft small{font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.45}

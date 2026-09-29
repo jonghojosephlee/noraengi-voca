@@ -38,6 +38,20 @@ function cached(request, cacheName) {   // cache first
   })));
 }
 
+// study reminders from the voca-sync workflow: {title, body, url, tag}
+self.addEventListener('push', event => {
+  let m = {};
+  try { m = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(self.registration.showNotification(m.title || '공부할 시간이에요', { body: m.body || '', icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: m.tag || 'study', data: { url: m.url || './' } }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) if ('focus' in c) return c.focus();
+    return self.clients.openWindow ? self.clients.openWindow('./') : null;
+  }));
+});
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
