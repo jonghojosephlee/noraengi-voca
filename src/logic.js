@@ -6,7 +6,7 @@ const Logic = (() => {
   const INTERVAL = [0, 1, 3, 7, 16, 35, 80, 180];  // box -> days until the next review
   const MAXBOX = INTERVAL.length - 1;
   const MASTER = 5;                                 // box at which a word counts as mastered
-  const DAYMS = 864e5, SHIFT = 4 * 36e5;            // a study day rolls over at 4am local time
+  const DAYMS = 864e5, SHIFT = 0;                   // a study day rolls over at midnight local time (the learner's choice)
   const LESSON_NEW = 5, LESSON_REV = 5, REVIEW_LESSON = 10, DAILY_TEST = 10;   // a lesson: 5 new words + up to 5 reviews, or 10 reviews
   const MIX_TYPES = ['mcq-ko', 'mcq-en', 'syn', 'listen', 'spell', 'cloze', 'ctx', 'dict', 'multi'];
   const AUDIO_TYPES = ['listen', 'dict'];

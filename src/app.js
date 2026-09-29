@@ -1475,7 +1475,7 @@ function renderSettings() {
     </div>
     <p class="about"><b>단어</b> · ${esc(APP.about).replace('{last}', pad2(W.days[W.days.length - 1])).replace('{count}', fmt(W.words.length))}<br>
     <b>발음</b> · 오픈소스 음성 AI Kokoro-82M(Apache-2.0)으로 만든 미국식 발음이에요. 명사·동사에 따라 강세가 달라지는 단어는 뜻에 맞춰 골랐고, 발음기호도 그 소리와 같은 발음 데이터로 만든 미국식이에요.<br>
-    <b>복습 간격</b> · 맞힐 때마다 1 → 3 → 7 → 16 → 35 → 80 → 180일로 늘어나고, 틀리면 그 자리에서 다시 나온 뒤 다음 날 또 복습해요. 35일 간격에 도달하면 ‘암기 완료’예요. 하루는 새벽 4시에 바뀌어요.<br>
+    <b>복습 간격</b> · 맞힐 때마다 1 → 3 → 7 → 16 → 35 → 80 → 180일로 늘어나고, 틀리면 그 자리에서 다시 나온 뒤 다음 날 또 복습해요. 35일 간격에 도달하면 ‘암기 완료’예요. 하루는 자정에 바뀌어요.<br>
     <span class="mono" style="font-size:11.5px">v${esc(CFG.version || '2')}</span></p>
   </div>`;
 }
